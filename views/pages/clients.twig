@@ -1,0 +1,815 @@
+{% extends 'layouts/app.twig' %}
+
+{% block content %}
+<div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col h-full min-h-[500px]">
+    <!-- Toolbar -->
+    <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div class="flex items-center gap-2">
+            <h3 class="font-semibold text-gray-custom flex items-center gap-2">
+                <i data-lucide="users" class="w-5 h-5 text-gold-custom"></i>
+                Müvekkiller
+            </h3>
+            <span class="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full border border-slate-200 font-medium" id="total-count">0 Kayıt</span>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="searchInput" placeholder="İsim, TCKN, E-posta..." class="pl-9 pr-4 py-2 border border-slate-300 rounded-md text-sm focus:border-gold-custom focus:ring-1 focus:ring-gold-custom outline-none w-64 transition-all" onkeyup="if(event.key === 'Enter') loadClients()">
+            </div>
+            <select id="typeFilter" class="border border-slate-300 rounded-md px-3 py-2 text-sm outline-none focus:border-gold-custom" onchange="loadClients()">
+                <option value="">Tümü (Tip)</option>
+                <option value="Bireysel">Bireysel</option>
+                <option value="Kurumsal">Kurumsal</option>
+            </select>
+            <button onclick="openClientModal()" class="bg-gray-custom hover:bg-[#333] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 shadow-sm">
+                <i data-lucide="plus" class="w-4 h-4 text-gold-custom"></i> Yeni Müvekkil
+            </button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="flex-1 overflow-auto custom-scroll relative">
+        <table class="w-full text-sm text-left">
+            <thead class="bg-slate-50 text-slate-500 font-medium sticky top-0 z-10 shadow-sm border-b border-slate-200">
+                <tr>
+                    <th class="px-5 py-3">Müvekkil</th>
+                    <th class="px-5 py-3">Tip / Kimlik</th>
+                    <th class="px-5 py-3">İletişim</th>
+                    <th class="px-5 py-3 text-right">Genel Bakiye</th>
+                    <th class="px-5 py-3">Durum</th>
+                    <th class="px-5 py-3 text-right">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody id="clientsTableBody" class="divide-y divide-slate-100">
+                <tr><td colspan="6" class="text-center py-8 text-slate-500">Yükleniyor...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="px-5 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0 rounded-b-lg">
+        <span class="text-sm text-slate-500" id="page-info">Sayfa 1 / 1</span>
+        <div class="flex gap-1">
+            <button id="prevPage" onclick="changePage(-1)" class="px-3 py-1 border border-slate-300 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors">Önceki</button>
+            <button id="nextPage" onclick="changePage(1)" class="px-3 py-1 border border-slate-300 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors">Sonraki</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Yeni/Düzenle -->
+<div id="clientModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh] transform scale-95 transition-transform duration-300" id="clientModalContent">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">
+            <h3 class="text-lg font-semibold text-gray-custom flex items-center gap-2" id="modalTitle">
+                <i data-lucide="user-plus" class="w-5 h-5 text-gold-custom"></i> Yeni Müvekkil Ekle
+            </h3>
+            <button onclick="closeClientModal()" class="text-slate-400 hover:text-rose-500 transition-colors p-1 rounded-md hover:bg-rose-50">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto custom-scroll">
+            <!-- Uyarı/Hata Mesajı Alanı -->
+            <div id="modalAlert" class="hidden mb-4 p-3 rounded-md text-sm font-medium"></div>
+
+            <form id="clientForm" class="space-y-5" onsubmit="event.preventDefault(); saveClient();">
+                <input type="hidden" id="client_id">
+                
+                <div class="grid grid-cols-2 gap-5">
+                    <div class="col-span-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Müvekkil Tipi</label>
+                        <div class="flex gap-6">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="client_type" value="Bireysel" checked class="w-4 h-4 text-gold-custom border-slate-300 focus:ring-gold-custom" onchange="toggleClientTypeFields()">
+                                <span class="text-sm font-medium text-slate-700">Bireysel</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="client_type" value="Kurumsal" class="w-4 h-4 text-gold-custom border-slate-300 focus:ring-gold-custom" onchange="toggleClientTypeFields()">
+                                <span class="text-sm font-medium text-slate-700">Kurumsal</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Bireysel Alanlar -->
+                    <div class="bireysel-field col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Ad <span class="text-rose-500">*</span></label>
+                        <input type="text" id="first_name" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+                    <div class="bireysel-field col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Soyad <span class="text-rose-500">*</span></label>
+                        <input type="text" id="last_name" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+                    <div class="bireysel-field col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">TC Kimlik No</label>
+                        <input type="text" id="tc_no" maxlength="11" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,''); validateTcNoLive(this.value);" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none transition-all" id="tc_no_input">
+                        <div id="tc_no_feedback" class="text-xs mt-1 hidden"></div>
+                    </div>
+
+                    <!-- Kurumsal Alanlar -->
+                    <div class="kurumsal-field col-span-2 hidden">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Firma Ünvanı <span class="text-rose-500">*</span></label>
+                        <input type="text" id="company_name" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+                    <div class="kurumsal-field col-span-1 hidden">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Vergi Dairesi</label>
+                        <input type="text" id="tax_office" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+                    <div class="kurumsal-field col-span-1 hidden">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Vergi No</label>
+                        <input type="text" id="tax_no" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,''); validateVknLive(this.value);" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none transition-all">
+                        <div id="tax_no_feedback" class="text-xs mt-1 hidden"></div>
+                    </div>
+
+                    <!-- Ortak Alanlar -->
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Telefon</label>
+                        <input type="text" id="phone" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">E-posta</label>
+                        <input type="email" id="email" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+                    
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">İl</label>
+                        <input type="text" id="city" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">İlçe</label>
+                        <input type="text" id="district" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Açık Adres</label>
+                        <textarea id="address" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all"></textarea>
+                    </div>
+                    
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Durum</label>
+                        <select id="status" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                            <option value="Aktif">Aktif</option>
+                            <option value="Pasif">Pasif</option>
+                        </select>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-3 shrink-0 bg-slate-50 rounded-b-lg">
+            <button type="button" onclick="closeClientModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">İptal</button>
+            <button type="button" onclick="saveClient()" id="saveBtn" class="bg-gold-custom hover:bg-[#b89e6e] text-gray-900 px-6 py-2 rounded-md text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                <i data-lucide="save" class="w-4 h-4"></i> <span id="saveBtnText">Kaydet</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Cari Hesap Ekstresi -->
+<div id="statementModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh] transform scale-95 transition-transform duration-300" id="statementModalContent">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">
+            <h3 class="text-lg font-semibold text-gray-custom flex items-center gap-2">
+                <i data-lucide="file-text" class="w-5 h-5 text-gold-custom"></i> <span id="statementModalTitle">Cari Hesap Ekstresi</span>
+            </h3>
+            <button onclick="closeStatementModal()" class="text-slate-400 hover:text-rose-500 transition-colors p-1 rounded-md hover:bg-rose-50">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        
+        <!-- Filtreler -->
+        <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 flex items-center gap-3 shrink-0">
+            <input type="hidden" id="statementClientId">
+            <div class="flex items-center gap-2">
+                <label class="text-xs font-medium text-slate-500">Başlangıç:</label>
+                <input type="date" id="statementDateFrom" class="px-2 py-1 text-sm border border-slate-300 rounded-md outline-none focus:border-gold-custom">
+            </div>
+            <div class="flex items-center gap-2">
+                <label class="text-xs font-medium text-slate-500">Bitiş:</label>
+                <input type="date" id="statementDateTo" class="px-2 py-1.5 text-sm border border-slate-300 rounded-md outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+            </div>
+            <button onclick="fetchStatement()" class="px-4 py-1.5 bg-gray-custom text-white text-sm font-medium rounded-md hover:bg-[#1a1a1a] transition-colors shadow-sm flex items-center gap-1.5">
+                <i data-lucide="search" class="w-4 h-4"></i> Sorgula
+            </button>
+        </div>
+
+        <!-- Tablo -->
+        <div class="p-6 overflow-y-auto custom-scroll flex-1">
+            <div id="statementAlert" class="hidden mb-4 p-3 rounded-md text-sm font-medium"></div>
+            
+            <table class="w-full text-sm text-left border-collapse border border-slate-200">
+                <thead class="bg-slate-100 text-slate-600 font-medium">
+                    <tr>
+                        <th class="border border-slate-200 px-3 py-2">Tarih</th>
+                        <th class="border border-slate-200 px-3 py-2">İşlem</th>
+                        <th class="border border-slate-200 px-3 py-2">Açıklama</th>
+                        <th class="border border-slate-200 px-3 py-2 text-right">Borç</th>
+                        <th class="border border-slate-200 px-3 py-2 text-right">Alacak</th>
+                        <th class="border border-slate-200 px-3 py-2 text-right">Bakiye</th>
+                    </tr>
+                </thead>
+                <tbody id="statementTableBody">
+                    <tr><td colspan="6" class="text-center py-4 text-slate-500">Tarih aralığı seçip sorgulayabilirsiniz veya Tüm Zamanlar için direkt Sorgula'ya basabilirsiniz.</td></tr>
+                </tbody>
+                <tfoot id="statementTableFoot" class="bg-slate-50 border-t-2 border-slate-300 hidden">
+                    <!-- Dinamik eklenecek -->
+                </tfoot>
+            </table>
+        </div>
+        
+        <!-- İşlemler -->
+        <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-between shrink-0 bg-slate-50 rounded-b-lg">
+            <div class="flex items-center gap-3">
+                <input type="email" id="statementEmailInput" placeholder="E-posta Adresi" class="px-3 py-2 border border-slate-300 rounded-md text-sm w-64 outline-none focus:ring-1 focus:ring-gold-custom border focus:border-gold-custom transition-all hidden">
+                <button type="button" id="btnSendMail" onclick="sendStatementMail()" class="bg-gray-custom hover:bg-[#1a1a1a] text-white px-5 py-2 rounded-md text-sm font-medium transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50">
+                    <i data-lucide="send" class="w-4 h-4 text-gold-custom"></i> E-Posta Gönder
+                </button>
+            </div>
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="closeStatementModal()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-200 rounded-md transition-colors">Kapat</button>
+                <button type="button" onclick="downloadStatementPdf()" id="btnDownloadPdf" class="bg-gold-custom hover:bg-[#b89e6e] text-gray-900 border border-gold-custom px-6 py-2 rounded-md text-sm font-medium transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50">
+                    <i data-lucide="file-down" class="w-4 h-4"></i> PDF İndir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let currentPage = 1;
+    const limit = 15;
+    let totalPages = 1;
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
+    }
+
+    // --- TC Kimlik No / VKN Anlık Doğrulama ---
+    function validateTcKimlikNoJS(tc) {
+        if (tc.length !== 11) return false;
+        if (tc[0] === '0') return false;
+        const d = tc.split('').map(Number);
+        const oddSum = d[0] + d[2] + d[4] + d[6] + d[8];
+        const evenSum = d[1] + d[3] + d[5] + d[7];
+        let check10 = ((oddSum * 7) - evenSum) % 10;
+        if (check10 < 0) check10 += 10;
+        if (check10 !== d[9]) return false;
+        let sum = 0;
+        for (let i = 0; i < 10; i++) sum += d[i];
+        return (sum % 10) === d[10];
+    }
+
+    function validateVknJS(vkn) {
+        if (vkn.length !== 10) return false;
+        const d = vkn.split('').map(Number);
+        let total = 0;
+        for (let i = 0; i < 9; i++) {
+            let tmp = (d[i] + (9 - i)) % 10;
+            const power = Math.pow(2, 9 - i);
+            tmp = (tmp * power) % 9;
+            if (tmp === 0 && (9 - i) !== 0) tmp = 9;
+            total += tmp;
+        }
+        const checkDigit = (10 - (total % 10)) % 10;
+        return checkDigit === d[9];
+    }
+
+    function setFieldFeedback(inputId, feedbackId, isValid, validMsg, invalidMsg) {
+        const input = document.getElementById(inputId);
+        const feedback = document.getElementById(feedbackId);
+        if (!input || !feedback) return;
+
+        input.classList.remove('border-emerald-500', 'border-rose-500', 'border-slate-300');
+        if (isValid) {
+            input.classList.add('border-emerald-500');
+            feedback.textContent = validMsg;
+            feedback.className = 'text-xs mt-1 text-emerald-600 flex items-center gap-1';
+            feedback.innerHTML = '<svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> ' + validMsg;
+        } else {
+            input.classList.add('border-rose-500');
+            feedback.textContent = invalidMsg;
+            feedback.className = 'text-xs mt-1 text-rose-600 flex items-center gap-1';
+            feedback.innerHTML = '<svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg> ' + invalidMsg;
+        }
+        feedback.classList.remove('hidden');
+    }
+
+    function clearFieldFeedback(inputId, feedbackId) {
+        const input = document.getElementById(inputId);
+        const feedback = document.getElementById(feedbackId);
+        if (input) {
+            input.classList.remove('border-emerald-500', 'border-rose-500');
+            input.classList.add('border-slate-300');
+        }
+        if (feedback) {
+            feedback.classList.add('hidden');
+            feedback.textContent = '';
+        }
+    }
+
+    function validateTcNoLive(val) {
+        if (!val || val.length === 0) {
+            clearFieldFeedback('tc_no', 'tc_no_feedback');
+            return;
+        }
+        if (val.length < 11) {
+            clearFieldFeedback('tc_no', 'tc_no_feedback');
+            return;
+        }
+        const isValid = validateTcKimlikNoJS(val);
+        setFieldFeedback('tc_no', 'tc_no_feedback', isValid, 'Geçerli TC Kimlik No', 'Geçersiz TC Kimlik No');
+    }
+
+    function validateVknLive(val) {
+        if (!val || val.length === 0) {
+            clearFieldFeedback('tax_no', 'tax_no_feedback');
+            return;
+        }
+        if (val.length < 10) {
+            clearFieldFeedback('tax_no', 'tax_no_feedback');
+            return;
+        }
+        const isValid = validateVknJS(val);
+        setFieldFeedback('tax_no', 'tax_no_feedback', isValid, 'Geçerli Vergi Kimlik No', 'Geçersiz Vergi Kimlik No');
+    }
+
+    // Modal UI Yönetimi
+    function toggleClientTypeFields() {
+        const isBireysel = document.querySelector('input[name="client_type"]:checked').value === 'Bireysel';
+        const bireyselFields = document.querySelectorAll('.bireysel-field');
+        const kurumsalFields = document.querySelectorAll('.kurumsal-field');
+
+        if (isBireysel) {
+            bireyselFields.forEach(el => el.classList.remove('hidden'));
+            kurumsalFields.forEach(el => el.classList.add('hidden'));
+        } else {
+            bireyselFields.forEach(el => el.classList.add('hidden'));
+            kurumsalFields.forEach(el => el.classList.remove('hidden'));
+        }
+    }
+
+    function openClientModal(id = null) {
+        document.getElementById('clientForm').reset();
+        document.getElementById('client_id').value = '';
+        document.getElementById('modalTitle').innerHTML = '<i data-lucide="user-plus" class="w-5 h-5 text-gold-custom"></i> Yeni Müvekkil Ekle';
+        document.getElementById('modalAlert').classList.add('hidden');
+        clearFieldFeedback('tc_no', 'tc_no_feedback');
+        clearFieldFeedback('tax_no', 'tax_no_feedback');
+        document.querySelector('input[name="client_type"][value="Bireysel"]').checked = true;
+        toggleClientTypeFields();
+        lucide.createIcons();
+
+        if (id) {
+            document.getElementById('modalTitle').innerHTML = '<i data-lucide="edit" class="w-5 h-5 text-gold-custom"></i> Müvekkil Düzenle';
+            loadClientDetails(id);
+        }
+
+        const modal = document.getElementById('clientModal');
+        const content = document.getElementById('clientModalContent');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeClientModal() {
+        const modal = document.getElementById('clientModal');
+        const content = document.getElementById('clientModalContent');
+        modal.classList.add('opacity-0');
+        content.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 300);
+    }
+
+    function showAlert(msg, isError = true) {
+        const alertEl = document.getElementById('modalAlert');
+        alertEl.textContent = msg;
+        alertEl.className = `mb-4 p-3 rounded-md text-sm font-medium ${isError ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`;
+        alertEl.classList.remove('hidden');
+    }
+
+    // --- API İşlemleri ---
+
+    async function loadClients() {
+        const search = document.getElementById('searchInput').value;
+        const type = document.getElementById('typeFilter').value;
+        const tbody = document.getElementById('clientsTableBody');
+        
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-500"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Yükleniyor...</td></tr>';
+        lucide.createIcons();
+
+        let query = `?page=${currentPage}&limit=${limit}`;
+
+        const res = await apiCall('/clients' + query);
+
+        if (!res || res.status !== 'success') {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-rose-500">${res?.message || 'Hata oluştu'}</td></tr>`;
+            return;
+        }
+
+        const data = res.data;
+        document.getElementById('total-count').textContent = `${res.meta.total_records} Kayıt`;
+        document.getElementById('page-info').textContent = `Sayfa ${res.meta.current_page} / ${res.meta.total_pages || 1}`;
+        totalPages = res.meta.total_pages || 1;
+        
+        document.getElementById('prevPage').disabled = currentPage <= 1;
+        document.getElementById('nextPage').disabled = currentPage >= totalPages;
+
+        if (data.length === 0) {
+            tbody.innerHTML = emptyStateRow('users', 'Müvekkil Bulunamadı', 'Henüz müvekkil kaydı oluşturulmamış veya arama kriterlerinize uygun sonuç yok.', 'Yeni Müvekkil Ekle', 'openClientModal()', 6);
+            createLucideIcons(tbody);
+            return;
+        }
+
+        // JS tabanlı basit filtreleme (Arama inputu için)
+        const filtered = data.filter(c => {
+            const matchStr = `${c.first_name} ${c.last_name} ${c.company_name} ${c.tc_no} ${c.tax_no} ${c.email}`.toLowerCase();
+            const searchMatch = !search || matchStr.includes(search.toLowerCase());
+            const typeMatch = !type || c.client_type === type;
+            return searchMatch && typeMatch;
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-500">Aramaya uygun kayıt bulunamadı.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(c => {
+            const isBireysel = c.client_type === 'Bireysel';
+            const name = isBireysel ? `${c.first_name || ''} ${c.last_name || ''}` : c.company_name;
+            const ident = isBireysel ? (c.tc_no || '-') : (c.tax_no ? `${c.tax_office} / ${c.tax_no}` : '-');
+            const contact = [c.phone, c.email].filter(Boolean).join(' • ') || '-';
+            const statusColor = c.status === 'Aktif' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200';
+
+            const receivable = parseFloat(c.total_receivable) || 0;
+            const feeCollection = parseFloat(c.total_fee_collection) || 0;
+            const feeDebt = parseFloat(c.fee_debt) || 0;
+            const trustBalance = parseFloat(c.trust_balance) || 0;
+
+            // Genel (Net) Bakiye
+            const netBalance = feeDebt - trustBalance;
+            let netColor = netBalance === 0 ? 'text-slate-500' : (netBalance > 0 ? 'text-rose-600' : 'text-emerald-600');
+            let netLabel = netBalance === 0 ? 'Sıfırlandı' : (netBalance > 0 ? 'Siz Alacaklısınız' : 'Müvekkil Alacaklı');
+            let fmtNetBalance = netBalance !== 0 ? formatCurrency(Math.abs(netBalance)) : '₺0,00';
+            let netSign = netBalance < 0 ? '-' : '';
+
+            return `
+                <tr class="hover:bg-slate-50/50 transition-colors group">
+                    <td class="px-5 py-3">
+                        <div class="font-medium text-slate-800">${name}</div>
+                        <div class="text-[10px] text-slate-400 mt-1">ID: ${c.id}</div>
+                    </td>
+                    <td class="px-5 py-3">
+                        <div class="text-sm text-slate-700">${c.client_type}</div>
+                        <div class="text-xs text-slate-500 font-mono mt-0.5">${ident}</div>
+                    </td>
+                    <td class="px-5 py-3 text-slate-600 text-xs">${contact}</td>
+                    <td class="px-5 py-3 text-right">
+                        <span class="text-sm font-semibold ${netColor}">${netSign}${fmtNetBalance}</span>
+                        <div class="text-[10px] ${netColor} opacity-80 mt-0.5">${netLabel}</div>
+                    </td>
+                    <td class="px-5 py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${statusColor}">
+                            ${c.status}
+                        </span>
+                    </td>
+                    <td class="px-5 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="openStatementModal(${c.id}, '${name.replace(/'/g, "\\'")}')" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="Cari Hareket / Mutabakat">
+                                <i data-lucide="file-text" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="openClientModal(${c.id})" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors" title="Düzenle">
+                                <i data-lucide="edit" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteClient(${c.id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors" title="Sil">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+        lucide.createIcons();
+    }
+
+    function changePage(delta) {
+        const newPage = currentPage + delta;
+        if (newPage >= 1 && newPage <= totalPages) {
+            currentPage = newPage;
+            loadClients();
+        }
+    }
+
+    async function loadClientDetails(id) {
+        const res = await apiCall(`/clients/${id}`);
+        if (!res || res.status !== 'success') {
+            showAlert('Müvekkil bilgileri alınamadı.');
+            return;
+        }
+
+        const c = res.data;
+        document.getElementById('client_id').value = c.id;
+        document.querySelector(`input[name="client_type"][value="${c.client_type}"]`).checked = true;
+        toggleClientTypeFields();
+
+        document.getElementById('first_name').value = c.first_name || '';
+        document.getElementById('last_name').value = c.last_name || '';
+        document.getElementById('tc_no').value = c.tc_no || '';
+        document.getElementById('company_name').value = c.company_name || '';
+        document.getElementById('tax_office').value = c.tax_office || '';
+        document.getElementById('tax_no').value = c.tax_no || '';
+        document.getElementById('phone').value = c.phone || '';
+        document.getElementById('email').value = c.email || '';
+        document.getElementById('city').value = c.city || '';
+        document.getElementById('district').value = c.district || '';
+        document.getElementById('address').value = c.address || '';
+        document.getElementById('status').value = c.status || 'Aktif';
+
+        // Mevcut TC/VKN değerlerini doğrula
+        if (c.tc_no) validateTcNoLive(c.tc_no);
+        if (c.tax_no) validateVknLive(c.tax_no);
+    }
+
+    async function saveClient() {
+        const id = document.getElementById('client_id').value;
+        const type = document.querySelector('input[name="client_type"]:checked').value;
+        const btn = document.getElementById('saveBtn');
+        const btnText = document.getElementById('saveBtnText');
+
+        // Basit validasyon
+        if (type === 'Bireysel' && (!document.getElementById('first_name').value || !document.getElementById('last_name').value)) {
+            return showAlert('Ad ve Soyad zorunludur.');
+        }
+        if (type === 'Kurumsal' && !document.getElementById('company_name').value) {
+            return showAlert('Firma Ünvanı zorunludur.');
+        }
+
+        const payload = {
+            client_type: type,
+            phone: document.getElementById('phone').value,
+            email: document.getElementById('email').value,
+            city: document.getElementById('city').value,
+            district: document.getElementById('district').value,
+            address: document.getElementById('address').value,
+            status: document.getElementById('status').value,
+        };
+
+        if (type === 'Bireysel') {
+            payload.first_name = document.getElementById('first_name').value;
+            payload.last_name = document.getElementById('last_name').value;
+            const tc = document.getElementById('tc_no').value;
+            if (tc) {
+                payload.tc_no = tc;
+                if (!validateTcKimlikNoJS(tc)) {
+                    validateTcNoLive(tc);
+                    // Sadece görsel uyarı ver, formu engelleme
+                }
+            }
+        } else {
+            payload.company_name = document.getElementById('company_name').value;
+            payload.tax_office = document.getElementById('tax_office').value;
+            const tax = document.getElementById('tax_no').value;
+            if (tax) {
+                payload.tax_no = tax;
+                if (!validateVknJS(tax)) {
+                    validateVknLive(tax);
+                    // Sadece görsel uyarı ver, formu engelleme
+                }
+            }
+        }
+
+        btn.disabled = true;
+        btnText.textContent = 'Kaydediliyor...';
+        document.getElementById('modalAlert').classList.add('hidden');
+
+        const endpoint = id ? `/clients/${id}` : '/clients';
+        const method = id ? 'PUT' : 'POST';
+
+        const res = await apiCall(endpoint, method, payload);
+        
+        btn.disabled = false;
+        btnText.textContent = 'Kaydet';
+
+        if (!res || res.status !== 'success') {
+            showAlert(res?.message || 'Bir hata oluştu.', true);
+        } else {
+            showAlert('Başarıyla kaydedildi.', false);
+            setTimeout(() => {
+                closeClientModal();
+                loadClients();
+            }, 1000);
+        }
+    }
+
+    async function deleteClient(id) {
+        const confirmed = await showConfirm(
+            'Müvekkili Sil',
+            'Bu müvekkili silmek istediğinize emin misiniz? (Bağlı dosyalar varsa silme işlemi başarısız olabilir)',
+            'Evet, Sil'
+        );
+        if (!confirmed) return;
+        
+        const res = await apiCall(`/clients/${id}`, 'DELETE');
+        if (!res || res.status !== 'success') {
+            showToast('Hata: ' + (res?.message || 'Silinemedi.'), 'error');
+        } else {
+            loadClients();
+        }
+    }
+
+    // --- Ekstre İşlemleri ---
+    function openStatementModal(clientId, clientName) {
+        document.getElementById('statementClientId').value = clientId;
+        document.getElementById('statementModalTitle').textContent = clientName + ' - Cari Ekstre';
+        document.getElementById('statementDateFrom').value = '';
+        document.getElementById('statementDateTo').value = '';
+        document.getElementById('statementTableBody').innerHTML = '<tr><td colspan="6" class="text-center py-4 text-slate-500">Tarih aralığı seçip sorgulayabilirsiniz veya Tüm Zamanlar için direkt Sorgula\'ya basabilirsiniz.</td></tr>';
+        document.getElementById('statementTableFoot').classList.add('hidden');
+        document.getElementById('statementAlert').classList.add('hidden');
+        document.getElementById('statementEmailInput').value = '';
+        document.getElementById('statementEmailInput').classList.remove('hidden');
+
+        const modal = document.getElementById('statementModal');
+        const content = document.getElementById('statementModalContent');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeStatementModal() {
+        const modal = document.getElementById('statementModal');
+        const content = document.getElementById('statementModalContent');
+        modal.classList.add('opacity-0');
+        content.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 300);
+    }
+
+    async function fetchStatement() {
+        const clientId = document.getElementById('statementClientId').value;
+        const from = document.getElementById('statementDateFrom').value;
+        const to = document.getElementById('statementDateTo').value;
+        const tbody = document.getElementById('statementTableBody');
+        const tfoot = document.getElementById('statementTableFoot');
+        
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-slate-500"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto"></i></td></tr>';
+        lucide.createIcons();
+        document.getElementById('statementAlert').classList.add('hidden');
+
+        let qs = '';
+        if(from) qs += 'date_from='+from+'&';
+        if(to) qs += 'date_to='+to;
+
+        const res = await apiCall(`/clients/${clientId}/statement?${qs}`);
+        if(!res || res.status !== 'success') {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-rose-500">${res?.message || 'Veri alınamadı'}</td></tr>`;
+            return;
+        }
+
+        const st = res.data;
+        let html = '';
+        
+        html += `<tr class="bg-slate-50 text-slate-600 font-medium">
+            <td colspan="5" class="border border-slate-200 px-3 py-2">Devreden Bakiye</td>
+            <td class="border border-slate-200 px-3 py-2 text-right">${formatCurrency(st.balances.initial)}</td>
+        </tr>`;
+        
+        if (st.transactions.length === 0) {
+            html += `<tr><td colspan="6" class="text-center py-4 text-slate-500">Bu aralıkta işlem bulunmuyor.</td></tr>`;
+        } else {
+            st.transactions.forEach(r => {
+                const isDebt = (r.transaction_type === 'Alacak') || (r.transaction_type === 'Gider' && r.sub_type === 'masraf');
+                const isCredit = r.transaction_type === 'Tahsilat';
+                
+                const debtHtml = isDebt ? formatCurrency(r.total_amount) : '';
+                const creditHtml = isCredit ? formatCurrency(r.total_amount) : '';
+                const desc = r.description || r.category || '-';
+                
+                html += `<tr>
+                    <td class="border border-slate-200 px-3 py-2 whitespace-nowrap">${r.transaction_date.split('-').reverse().join('.')}</td>
+                    <td class="border border-slate-200 px-3 py-2">${r.transaction_type} ${r.sub_type ? '('+r.sub_type+')' : ''}</td>
+                    <td class="border border-slate-200 px-3 py-2 max-w-[200px] truncate" title="${desc}">
+                        ${desc}
+                        ${r.case_no ? '<br><span class="text-[10px] text-slate-400">Dosya/Föy: '+r.case_no+'</span>' : ''}
+                    </td>
+                    <td class="border border-slate-200 px-3 py-2 text-right">${debtHtml}</td>
+                    <td class="border border-slate-200 px-3 py-2 text-right">${creditHtml}</td>
+                    <td class="border border-slate-200 px-3 py-2 text-right font-medium text-slate-800">${formatCurrency(r.running_balance)}</td>
+                </tr>`;
+            });
+        }
+        
+        tbody.innerHTML = html;
+        tfoot.innerHTML = `<tr>
+            <td colspan="5" class="px-3 py-2 text-right font-bold text-slate-700">Genel Bakiye (Net):</td>
+            <td class="px-3 py-2 text-right font-bold ${st.balances.final > 0 ? 'text-rose-600' : (st.balances.final < 0 ? 'text-emerald-600' : 'text-slate-800')}">${formatCurrency(st.balances.final)}</td>
+        </tr>`;
+        tfoot.classList.remove('hidden');
+        
+        document.getElementById('statementEmailInput').value = st.client.email || '';
+    }
+
+    async function downloadStatementPdf() {
+        const clientId = document.getElementById('statementClientId').value;
+        const from = document.getElementById('statementDateFrom').value;
+        const to = document.getElementById('statementDateTo').value;
+        const btn = document.getElementById('btnDownloadPdf');
+        
+        if (!clientId) return;
+        
+        btn.disabled = true;
+        const oldHtml = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Bekleyin...';
+        lucide.createIcons();
+        document.getElementById('statementAlert').classList.add('hidden');
+
+        try {
+            let qs = '';
+            if(from) qs += 'date_from='+from+'&';
+            if(to) qs += 'date_to='+to;
+            
+            const res = await fetch('/api/v1/clients/' + clientId + '/statement/pdf?' + qs, {
+                method: 'GET',
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+            });
+            
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.message || 'PDF oluşturulamadı');
+            }
+            
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `Mutabakat_Ekstre_${clientId}_${new Date().toISOString().slice(0,10)}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch(e) {
+            document.getElementById('statementAlert').innerHTML = e.message;
+            document.getElementById('statementAlert').className = 'mb-4 p-3 rounded-md text-sm font-medium bg-rose-50 text-rose-700 border border-rose-200 block';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = oldHtml;
+        }
+    }
+
+    async function sendStatementMail() {
+        const clientId = document.getElementById('statementClientId').value;
+        const from = document.getElementById('statementDateFrom').value;
+        const to = document.getElementById('statementDateTo').value;
+        const email = document.getElementById('statementEmailInput').value;
+        
+        if (!email) {
+            document.getElementById('statementAlert').innerHTML = 'Lütfen geçerli bir e-posta adresi girin.';
+            document.getElementById('statementAlert').className = 'mb-4 p-3 rounded-md text-sm font-medium bg-rose-50 text-rose-700 border border-rose-200 block';
+            return;
+        }
+
+        const btn = document.getElementById('btnSendMail');
+        btn.disabled = true;
+        const oldHtml = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Gönderiliyor...';
+        lucide.createIcons();
+        document.getElementById('statementAlert').classList.add('hidden');
+
+        try {
+            const res = await apiCall(`/clients/${clientId}/statement/mail`, 'POST', {
+                date_from: from,
+                date_to: to,
+                email: email
+            });
+
+            if (res && res.status === 'success') {
+                document.getElementById('statementAlert').innerHTML = res.message;
+                document.getElementById('statementAlert').className = 'mb-4 p-3 rounded-md text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 block';
+            } else {
+                throw new Error(res?.message || 'Mail gönderim hatası');
+            }
+        } catch (e) {
+            document.getElementById('statementAlert').innerHTML = e.message;
+            document.getElementById('statementAlert').className = 'mb-4 p-3 rounded-md text-sm font-medium bg-rose-50 text-rose-700 border border-rose-200 block';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = oldHtml;
+        }
+    }
+
+    // İlk yükleme
+    document.addEventListener('DOMContentLoaded', () => {
+        loadClients();
+    });
+</script>
+{% endblock %}

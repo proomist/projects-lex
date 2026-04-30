@@ -1,0 +1,386 @@
+{% extends "layouts/app.twig" %}
+
+{% block content %}
+<div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col h-full min-h-[500px]">
+    <!-- Toolbar -->
+    <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div class="flex items-center gap-2">
+            <h3 class="font-semibold text-gray-custom flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-5 h-5 text-gold-custom"></i>
+                Hata İzleme
+            </h3>
+            <span class="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full border border-slate-200 font-medium" id="total-count">0 Kayıt</span>
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+            <select id="filterLevel" class="border border-slate-300 rounded-md px-3 py-2 text-sm outline-none focus:border-gold-custom" onchange="applyFilters()">
+                <option value="">Tümü (Seviye)</option>
+                <option value="CRITICAL">Critical</option>
+                <option value="ERROR">Error</option>
+                <option value="WARNING">Warning</option>
+                <option value="NOTICE">Notice</option>
+            </select>
+
+            <input type="text" id="filterSearch" placeholder="Mesaj / Dosya ara..."
+                class="border border-slate-300 rounded-md px-3 py-2 text-sm outline-none focus:border-gold-custom w-[180px]"
+                onkeyup="if(event.key === 'Enter') applyFilters()">
+
+            <input type="text" id="filterUser" placeholder="Kullanıcı..."
+                class="border border-slate-300 rounded-md px-3 py-2 text-sm outline-none focus:border-gold-custom w-[130px]"
+                onkeyup="if(event.key === 'Enter') applyFilters()">
+
+            <input type="date" id="filterDateFrom" class="border border-slate-300 rounded-md px-3 py-2 text-sm outline-none focus:border-gold-custom" onchange="applyFilters()" title="Başlangıç Tarihi">
+            <input type="date" id="filterDateTo" class="border border-slate-300 rounded-md px-3 py-2 text-sm outline-none focus:border-gold-custom" onchange="applyFilters()" title="Bitiş Tarihi">
+
+            <button onclick="applyFilters()" class="bg-gray-custom hover:bg-[#333] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 shadow-sm">
+                <i data-lucide="filter" class="w-4 h-4 text-gold-custom"></i> Filtrele
+            </button>
+            <button onclick="clearFilters()" class="p-2 text-slate-400 hover:text-rose-500 transition-colors rounded-md hover:bg-rose-50" title="Filtreleri Temizle">
+                <i data-lucide="x-circle" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="flex-1 overflow-auto custom-scroll relative">
+        <table class="w-full text-sm text-left">
+            <thead class="bg-slate-50 text-slate-500 font-medium sticky top-0 z-10 shadow-sm border-b border-slate-200">
+                <tr>
+                    <th class="px-5 py-3">Tarih/Saat</th>
+                    <th class="px-5 py-3">Seviye</th>
+                    <th class="px-5 py-3">Mesaj</th>
+                    <th class="px-5 py-3">Dosya:Satır</th>
+                    <th class="px-5 py-3">İstek</th>
+                    <th class="px-5 py-3">Kullanıcı</th>
+                    <th class="px-5 py-3">IP</th>
+                </tr>
+            </thead>
+            <tbody id="logsTableBody" class="divide-y divide-slate-100">
+                <tr>
+                    <td colspan="7" class="px-5 py-8 text-center text-slate-400">
+                        <i data-lucide="loader" class="w-6 h-6 inline animate-spin text-gold-custom"></i>
+                        <span class="ml-2">Yükleniyor...</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="px-5 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0" id="paginationContainer">
+    </div>
+</div>
+
+<!-- Detay Modal -->
+<div id="detailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center" onclick="if(event.target===this) closeDetailModal()">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl m-4 max-h-[85vh] flex flex-col transform scale-95 transition-transform duration-300" id="detailModalContent">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+            <h3 class="font-semibold text-gray-custom flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-5 h-5 text-gold-custom"></i>
+                Hata Detayı
+            </h3>
+            <button onclick="closeDetailModal()" class="p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-5 space-y-4" id="detailContent">
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentPage = 1;
+let currentFilters = {};
+let allLogs = [];
+
+async function loadLogs(page = 1) {
+    currentPage = page;
+    const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '20',
+        ...currentFilters
+    });
+
+    try {
+        const result = await apiCall('/error-logs?' + params.toString());
+
+        if (result && result.status === 'success') {
+            allLogs = result.data;
+            document.getElementById('total-count').innerText = `${result.meta.total_records} Kayıt`;
+            renderLogs(result.data);
+            renderPagination(result.meta);
+        } else {
+            showError('Hata logları yüklenirken sorun oluştu.');
+        }
+    } catch (error) {
+        console.error('Log yükleme hatası:', error);
+        showError('Hata logları yüklenirken sorun oluştu.');
+    }
+}
+
+function renderLogs(logs) {
+    const tbody = document.getElementById('logsTableBody');
+
+    if (logs.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="px-5 py-8 text-center text-slate-500">
+                    <i data-lucide="shield-check" class="w-10 h-10 mx-auto mb-2 text-emerald-400"></i>
+                    <p>Kayıtlı hata bulunamadı</p>
+                </td>
+            </tr>
+        `;
+        lucide.createIcons();
+        return;
+    }
+
+    tbody.innerHTML = logs.map((log, index) => {
+        const date = new Date(log.created_at);
+        const formattedDate = date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const formattedTime = date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        const levelBadge = getLevelBadge(log.error_level);
+        const shortMessage = truncateText(log.message, 60);
+        const fileInfo = log.file ? shortFileName(log.file) + (log.line ? ':' + log.line : '') : '-';
+        const requestInfo = log.request_method ? `${log.request_method} ${truncateText(log.request_uri || '', 30)}` : '-';
+
+        return `
+            <tr class="hover:bg-slate-50/50 transition-colors group cursor-pointer" onclick="showDetail(${index})">
+                <td class="px-5 py-3">
+                    <div class="font-medium text-slate-700">${formattedDate}</div>
+                    <div class="text-xs text-slate-500">${formattedTime}</div>
+                </td>
+                <td class="px-5 py-3">${levelBadge}</td>
+                <td class="px-5 py-3 text-slate-700 max-w-[250px]">
+                    <div class="truncate" title="${escapeHtml(log.message)}">${escapeHtml(shortMessage)}</div>
+                </td>
+                <td class="px-5 py-3 font-mono text-xs text-slate-500 max-w-[180px]">
+                    <div class="truncate" title="${escapeHtml(log.file || '')}">${escapeHtml(fileInfo)}</div>
+                </td>
+                <td class="px-5 py-3 text-xs text-slate-600">${escapeHtml(requestInfo)}</td>
+                <td class="px-5 py-3 text-slate-700">${escapeHtml(log.user_name || 'Anonim')}</td>
+                <td class="px-5 py-3 font-mono text-xs text-slate-500">${escapeHtml(log.ip_address || '-')}</td>
+            </tr>
+        `;
+    }).join('');
+
+    lucide.createIcons();
+}
+
+function renderPagination(meta) {
+    const container = document.getElementById('paginationContainer');
+
+    if (meta.total_pages <= 1) {
+        container.innerHTML = `
+            <span class="text-sm text-slate-500">Toplam ${meta.total_records} kayıt</span>
+        `;
+        return;
+    }
+
+    const pages = [];
+    const maxVisible = 5;
+    let startPage = Math.max(1, meta.current_page - Math.floor(maxVisible / 2));
+    let endPage = Math.min(meta.total_pages, startPage + maxVisible - 1);
+
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+    }
+
+    container.innerHTML = `
+        <span class="text-sm text-slate-500">
+            Toplam <span class="font-medium text-slate-700">${meta.total_records}</span> kayıt
+        </span>
+        <div class="flex gap-1">
+            ${meta.current_page > 1 ? `
+                <button onclick="loadLogs(${meta.current_page - 1})"
+                    class="px-2.5 py-1.5 bg-white border border-slate-200 text-slate-600 rounded hover:bg-slate-50">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                </button>
+            ` : ''}
+
+            ${pages.map(p => `
+                <button onclick="loadLogs(${p})"
+                    class="px-3 py-1.5 rounded border ${p === meta.current_page ? 'bg-gold-custom/10 border-gold-custom/30 text-gold-custom font-medium' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}">
+                    ${p}
+                </button>
+            `).join('')}
+
+            ${meta.current_page < meta.total_pages ? `
+                <button onclick="loadLogs(${meta.current_page + 1})"
+                    class="px-2.5 py-1.5 bg-white border border-slate-200 text-slate-600 rounded hover:bg-slate-50">
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+            ` : ''}
+        </div>
+    `;
+
+    lucide.createIcons();
+}
+
+function showDetail(index) {
+    const log = allLogs[index];
+    if (!log) return;
+
+    const date = new Date(log.created_at);
+    const formattedDateTime = date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        + ' ' + date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    const levelBadge = getLevelBadge(log.error_level);
+
+    let html = `
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <span class="text-xs text-slate-500 block mb-1">Tarih/Saat</span>
+                <span class="text-sm font-medium text-slate-800">${formattedDateTime}</span>
+            </div>
+            <div>
+                <span class="text-xs text-slate-500 block mb-1">Seviye</span>
+                ${levelBadge}
+            </div>
+            <div>
+                <span class="text-xs text-slate-500 block mb-1">Kullanıcı</span>
+                <span class="text-sm text-slate-800">${escapeHtml(log.user_name || 'Anonim')}</span>
+            </div>
+            <div>
+                <span class="text-xs text-slate-500 block mb-1">IP Adresi</span>
+                <span class="text-sm font-mono text-slate-800">${escapeHtml(log.ip_address || '-')}</span>
+            </div>
+            <div class="col-span-2">
+                <span class="text-xs text-slate-500 block mb-1">İstek</span>
+                <span class="text-sm font-mono text-slate-800">${escapeHtml(log.request_method || '-')} ${escapeHtml(log.request_uri || '-')}</span>
+            </div>
+        </div>
+
+        <div>
+            <span class="text-xs text-slate-500 block mb-1">Hata Mesajı</span>
+            <div class="bg-rose-50 border border-rose-200 rounded-md p-3 text-sm text-rose-800 break-words">${escapeHtml(log.message)}</div>
+        </div>
+
+        <div>
+            <span class="text-xs text-slate-500 block mb-1">Dosya:Satır</span>
+            <span class="text-sm font-mono text-slate-700">${escapeHtml(log.file || '-')}${log.line ? ':' + log.line : ''}</span>
+        </div>
+    `;
+
+    if (log.trace) {
+        html += `
+            <div>
+                <span class="text-xs text-slate-500 block mb-1">Stack Trace</span>
+                <pre class="bg-gray-custom text-gray-300 rounded-md p-3 text-xs font-mono overflow-x-auto max-h-60 custom-scroll whitespace-pre-wrap break-words">${escapeHtml(log.trace)}</pre>
+            </div>
+        `;
+    }
+
+    if (log.user_agent) {
+        html += `
+            <div>
+                <span class="text-xs text-slate-500 block mb-1">User Agent</span>
+                <span class="text-xs font-mono text-slate-500 break-words">${escapeHtml(log.user_agent)}</span>
+            </div>
+        `;
+    }
+
+    document.getElementById('detailContent').innerHTML = html;
+
+    const modal = document.getElementById('detailModal');
+    const content = document.getElementById('detailModalContent');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    }, 10);
+
+    lucide.createIcons();
+}
+
+function closeDetailModal() {
+    const modal = document.getElementById('detailModal');
+    const content = document.getElementById('detailModalContent');
+    content.classList.remove('scale-100');
+    content.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 200);
+}
+
+function applyFilters() {
+    currentFilters = {};
+
+    const level = document.getElementById('filterLevel').value;
+    const search = document.getElementById('filterSearch').value.trim();
+    const userName = document.getElementById('filterUser').value.trim();
+    const dateFrom = document.getElementById('filterDateFrom').value;
+    const dateTo = document.getElementById('filterDateTo').value;
+
+    if (level) currentFilters.error_level = level;
+    if (search) currentFilters.search = search;
+    if (userName) currentFilters.user_name = userName;
+    if (dateFrom) currentFilters.date_from = dateFrom;
+    if (dateTo) currentFilters.date_to = dateTo;
+
+    loadLogs(1);
+}
+
+function clearFilters() {
+    document.getElementById('filterLevel').value = '';
+    document.getElementById('filterSearch').value = '';
+    document.getElementById('filterUser').value = '';
+    document.getElementById('filterDateFrom').value = '';
+    document.getElementById('filterDateTo').value = '';
+    currentFilters = {};
+    loadLogs(1);
+}
+
+function getLevelBadge(level) {
+    const styles = {
+        'CRITICAL': 'bg-red-100 text-red-700 border-red-200',
+        'ERROR': 'bg-rose-100 text-rose-700 border-rose-200',
+        'WARNING': 'bg-amber-100 text-amber-700 border-amber-200',
+        'NOTICE': 'bg-blue-100 text-blue-700 border-blue-200',
+    };
+    const style = styles[level] || 'bg-slate-100 text-slate-700 border-slate-200';
+    return `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${style}">${escapeHtml(level)}</span>`;
+}
+
+function truncateText(text, maxLen) {
+    if (!text) return '';
+    return text.length > maxLen ? text.substring(0, maxLen) + '...' : text;
+}
+
+function shortFileName(filePath) {
+    if (!filePath) return '-';
+    const parts = filePath.replace(/\\/g, '/').split('/');
+    return parts.length > 2 ? '...' + '/' + parts.slice(-2).join('/') : filePath;
+}
+
+function showError(message) {
+    const tbody = document.getElementById('logsTableBody');
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="7" class="px-5 py-8 text-center text-red-500">
+                <i data-lucide="alert-circle" class="w-8 h-8 mx-auto mb-2 opacity-80"></i>
+                <p>${escapeHtml(message)}</p>
+            </td>
+        </tr>
+    `;
+    lucide.createIcons();
+}
+
+// ESC ile modal kapat
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDetailModal();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadLogs(1);
+});
+</script>
+{% endblock %}

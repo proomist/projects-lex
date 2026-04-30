@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proomist - Avukat Ofis Yönetimi</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body,#root{height:100%;font-family:'IBM Plex Sans','Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;overflow:hidden}
+    ::-webkit-scrollbar{width:6px;height:6px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:3px}
+    .dark ::-webkit-scrollbar-thumb{background:#475569}
+    input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid #7c3aed;outline-offset:-1px}
+    table{border-collapse:collapse}
+    .transition-colors{transition:background-color .15s,color .15s,border-color .15s}
+    @keyframes float{0%,100%{transform:translateY(0) rotate(0deg);opacity:.3}50%{transform:translateY(-20px) rotate(3deg);opacity:.6}}
+    @keyframes slideIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .animate-slideIn{animation:slideIn .4s ease-out}
+    @keyframes badgePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+    .badge-pulse{animation:badgePulse 2s ease-in-out infinite}
+    .font-mono{font-family:'JetBrains Mono',monospace}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useCallback,useRef,createContext,useContext,useMemo,memo}=React;
+
+// ICON
+const Icon=({name,size=16,className=''})=>{const ref=useRef(null);useEffect(()=>{if(ref.current&&lucide[name]){ref.current.innerHTML='';const svg=lucide.createElement(lucide[name]);svg.setAttribute('width',size);svg.setAttribute('height',size);if(className)className.split(' ').forEach(c=>c&&svg.classList.add(c));ref.current.appendChild(svg)}},[name,size,className]);return <span ref={ref} className="inline-flex items-center justify-center"/>};
+
+// THEME
+const ThemeContext=createContext();
+
+// UTILS
+const fmt=v=>new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY'}).format(v);
+const fmtD=d=>new Date(d).toLocaleDateString('tr-TR');
+
+// MOCK DATA
+const mockMuv=[
+  {id:1,kod:'MVK-001',ad:'Ahmet Yılmaz',tip:'Bireysel',tckn:'12345678901',telefon:'0532 111 2233',email:'ahmet@email.com',il:'İstanbul',adres:'Kadıköy, İstanbul',kayitTarihi:'2024-03-15',aktifDosya:3,durum:'Aktif'},
+  {id:2,kod:'MVK-002',ad:'Mega İnşaat A.Ş.',tip:'Kurumsal',vkn:'9876543210',telefon:'0212 444 5566',email:'hukuk@megainsaat.com',il:'İstanbul',adres:'Levent, İstanbul',kayitTarihi:'2024-01-10',aktifDosya:5,durum:'Aktif'},
+  {id:3,kod:'MVK-003',ad:'Fatma Demir',tip:'Bireysel',tckn:'98765432109',telefon:'0544 222 3344',email:'fatma@email.com',il:'Ankara',adres:'Çankaya, Ankara',kayitTarihi:'2024-06-20',aktifDosya:1,durum:'Aktif'},
+  {id:4,kod:'MVK-004',ad:'ABC Teknoloji Ltd.',tip:'Kurumsal',vkn:'1122334455',telefon:'0216 777 8899',email:'info@abctech.com',il:'İzmir',adres:'Bornova, İzmir',kayitTarihi:'2024-08-05',aktifDosya:2,durum:'Aktif'},
+  {id:5,kod:'MVK-005',ad:'Ali Kara',tip:'Bireysel',tckn:'55667788990',telefon:'0555 333 4455',email:'ali.kara@email.com',il:'Bursa',adres:'Nilüfer, Bursa',kayitTarihi:'2023-11-01',aktifDosya:0,durum:'Pasif'},
+  {id:6,kod:'MVK-006',ad:'Deniz Holding A.Ş.',tip:'Kurumsal',vkn:'6677889900',telefon:'0312 999 0011',email:'hukuk@denizholding.com',il:'Ankara',adres:'Söğütözü, Ankara',kayitTarihi:'2024-02-28',aktifDosya:4,durum:'Aktif'},
+];
+const mockDos=[
+  {id:1,dosyaNo:'D-2024/001',esas:'2024/1234',mahkeme:'İstanbul 5. Asliye Hukuk',muvekkil:'Ahmet Yılmaz',karsiTaraf:'XYZ Ltd. Şti.',konu:'Alacak Davası',tur:'Hukuk',durum:'Devam Ediyor',avukat:'Av. Mehmet Öz',sonDurusma:'2025-02-15',sonrakiDurusma:'2025-03-20',tutar:150000},
+  {id:2,dosyaNo:'D-2024/002',esas:'2024/5678',mahkeme:'İstanbul 12. İş Mahkemesi',muvekkil:'Mega İnşaat A.Ş.',karsiTaraf:'Hasan Çelik',konu:'İşçi Alacağı',tur:'İş',durum:'Devam Ediyor',avukat:'Av. Ayşe Kaya',sonDurusma:'2025-01-28',sonrakiDurusma:'2025-03-05',tutar:85000},
+  {id:3,dosyaNo:'D-2024/003',esas:'2024/9012',mahkeme:'Ankara 3. Aile Mahkemesi',muvekkil:'Fatma Demir',karsiTaraf:'Mustafa Demir',konu:'Boşanma',tur:'Aile',durum:'Devam Ediyor',avukat:'Av. Mehmet Öz',sonDurusma:'2025-02-10',sonrakiDurusma:'2025-04-12',tutar:0},
+  {id:4,dosyaNo:'D-2024/004',esas:'2024/3456',mahkeme:'İstanbul 8. Ağır Ceza',muvekkil:'Ahmet Yılmaz',karsiTaraf:'Kamu',konu:'Dolandırıcılık (Müdahil)',tur:'Ceza',durum:'Devam Ediyor',avukat:'Av. Ayşe Kaya',sonDurusma:'2025-02-20',sonrakiDurusma:'2025-05-10',tutar:250000},
+  {id:5,dosyaNo:'D-2023/015',esas:'2023/7890',mahkeme:'İstanbul 2. İcra Müdürlüğü',muvekkil:'ABC Teknoloji Ltd.',karsiTaraf:'DEF Yazılım Ltd.',konu:'İcra Takibi',tur:'İcra',durum:'Devam Ediyor',avukat:'Av. Mehmet Öz',sonDurusma:'-',sonrakiDurusma:'-',tutar:320000},
+  {id:6,dosyaNo:'D-2024/005',esas:'2024/2345',mahkeme:'İstanbul 1. Asliye Ticaret',muvekkil:'Mega İnşaat A.Ş.',karsiTaraf:'GHI Malzeme A.Ş.',konu:'Sözleşme İhlali',tur:'Ticaret',durum:'Sonuçlandı',avukat:'Av. Ayşe Kaya',sonDurusma:'2025-01-15',sonrakiDurusma:'-',tutar:500000},
+  {id:7,dosyaNo:'D-2024/006',esas:'2024/6789',mahkeme:'Ankara 7. İdare Mahkemesi',muvekkil:'Deniz Holding A.Ş.',karsiTaraf:'Belediye',konu:'İmar İptali',tur:'İdare',durum:'Devam Ediyor',avukat:'Av. Mehmet Öz',sonDurusma:'2025-02-01',sonrakiDurusma:'2025-03-28',tutar:0},
+];
+const mockGor=[
+  {id:1,baslik:'Dava dilekçesi hazırla',dosyaNo:'D-2024/001',atanan:'Av. Mehmet Öz',oncelik:'Yüksek',sonTarih:'2025-02-20',durum:'Devam Ediyor',kategori:'Dilekçe'},
+  {id:2,baslik:'Tanık listesi sun',dosyaNo:'D-2024/002',atanan:'Av. Ayşe Kaya',oncelik:'Acil',sonTarih:'2025-02-18',durum:'Bekliyor',kategori:'Duruşma Hazırlık'},
+  {id:3,baslik:'Bilirkişi raporunu incele',dosyaNo:'D-2024/004',atanan:'Av. Ayşe Kaya',oncelik:'Yüksek',sonTarih:'2025-02-25',durum:'Devam Ediyor',kategori:'İnceleme'},
+  {id:4,baslik:'Müvekkil ile toplantı',dosyaNo:'D-2024/003',atanan:'Av. Mehmet Öz',oncelik:'Normal',sonTarih:'2025-02-22',durum:'Bekliyor',kategori:'Toplantı'},
+  {id:5,baslik:'İcra dosyası güncelle',dosyaNo:'D-2023/015',atanan:'Av. Mehmet Öz',oncelik:'Normal',sonTarih:'2025-02-28',durum:'Devam Ediyor',kategori:'İcra'},
+  {id:6,baslik:'Harç yatır',dosyaNo:'D-2024/001',atanan:'Stajyer Elif',oncelik:'Yüksek',sonTarih:'2025-02-19',durum:'Bekliyor',kategori:'Mali'},
+  {id:7,baslik:'Temyiz dilekçesi yaz',dosyaNo:'D-2024/005',atanan:'Av. Ayşe Kaya',oncelik:'Acil',sonTarih:'2025-02-17',durum:'Tamamlandı',kategori:'Dilekçe'},
+  {id:8,baslik:'UYAP kontrol',dosyaNo:'-',atanan:'Stajyer Elif',oncelik:'Düşük',sonTarih:'2025-02-28',durum:'Bekliyor',kategori:'Genel'},
+];
+const mockMali=[
+  {id:1,tarih:'2025-01-15',muvekkil:'Ahmet Yılmaz',dosyaNo:'D-2024/001',aciklama:'Dava vekalet ücreti',tip:'Alacak',tutar:25000,durum:'Tahsil Edildi'},
+  {id:2,tarih:'2025-01-20',muvekkil:'Mega İnşaat A.Ş.',dosyaNo:'D-2024/002',aciklama:'Aylık danışmanlık',tip:'Alacak',tutar:15000,durum:'Bekliyor'},
+  {id:3,tarih:'2025-01-25',muvekkil:'Fatma Demir',dosyaNo:'D-2024/003',aciklama:'Boşanma davası ücreti',tip:'Alacak',tutar:20000,durum:'Kısmi Ödendi'},
+  {id:4,tarih:'2025-02-01',muvekkil:'-',dosyaNo:'-',aciklama:'Ofis kirası',tip:'Borç',tutar:12000,durum:'Ödendi'},
+  {id:5,tarih:'2025-02-05',muvekkil:'ABC Teknoloji Ltd.',dosyaNo:'D-2023/015',aciklama:'İcra takip ücreti',tip:'Alacak',tutar:35000,durum:'Bekliyor'},
+  {id:6,tarih:'2025-02-10',muvekkil:'-',dosyaNo:'-',aciklama:'Personel maaş',tip:'Borç',tutar:45000,durum:'Ödendi'},
+  {id:7,tarih:'2025-02-10',muvekkil:'Deniz Holding A.Ş.',dosyaNo:'D-2024/006',aciklama:'İdare davası ücreti',tip:'Alacak',tutar:30000,durum:'Tahsil Edildi'},
+  {id:8,tarih:'2025-02-12',muvekkil:'-',dosyaNo:'-',aciklama:'Mahkeme harçları',tip:'Borç',tutar:3500,durum:'Ödendi'},
+];
+const mockKul=[
+  {id:1,ad:'Av. Mehmet Öz',email:'mehmet@hukuk.com',rol:'Yönetici',durum:'Aktif',sonGiris:'2025-02-15 09:30'},
+  {id:2,ad:'Av. Ayşe Kaya',email:'ayse@hukuk.com',rol:'Avukat',durum:'Aktif',sonGiris:'2025-02-15 08:45'},
+  {id:3,ad:'Stajyer Elif Yıldız',email:'elif@hukuk.com',rol:'Stajyer',durum:'Aktif',sonGiris:'2025-02-14 17:00'},
+  {id:4,ad:'Sekreter Zeynep',email:'zeynep@hukuk.com',rol:'Sekreter',durum:'Aktif',sonGiris:'2025-02-15 08:00'},
+];
+const yakDur=[
+  {tarih:'2025-02-18',saat:'10:00',mahkeme:'İstanbul 12. İş Mahkemesi',dosyaNo:'D-2024/002',konu:'İşçi Alacağı',avukat:'Av. Ayşe Kaya'},
+  {tarih:'2025-02-20',saat:'14:30',mahkeme:'İstanbul 8. Ağır Ceza',dosyaNo:'D-2024/004',konu:'Dolandırıcılık',avukat:'Av. Ayşe Kaya'},
+  {tarih:'2025-03-05',saat:'09:00',mahkeme:'İstanbul 12. İş Mahkemesi',dosyaNo:'D-2024/002',konu:'İşçi Alacağı',avukat:'Av. Ayşe Kaya'},
+  {tarih:'2025-03-20',saat:'11:00',mahkeme:'İstanbul 5. Asliye Hukuk',dosyaNo:'D-2024/001',konu:'Alacak Davası',avukat:'Av. Mehmet Öz'},
+  {tarih:'2025-03-28',saat:'10:30',mahkeme:'Ankara 7. İdare Mahkemesi',dosyaNo:'D-2024/006',konu:'İmar İptali',avukat:'Av. Mehmet Öz'},
+];
+
+// STATUS BAR
+const StatusBar=({user,theme,toggleTheme})=>{
+  const[time,setTime]=useState(new Date());
+  useEffect(()=>{const t=setInterval(()=>setTime(new Date()),1000);return()=>clearInterval(t)},[]);
+  const bg=theme==='dark'?'bg-gray-900 border-gray-700 text-gray-400':'bg-gray-100 border-gray-300 text-gray-500';
+  return(
+    <div className={`h-7 flex items-center justify-between px-3 text-xs border-t select-none ${bg}`}>
+      <div className="flex items-center gap-4">
+        <span className="flex items-center gap-1"><Icon name="User" size={11}/>{user}</span>
+        <span className="flex items-center gap-1"><Icon name="Scale" size={11}/>Proomist Hukuk Bürosu</span>
+      </div>
+      <div className="flex items-center gap-4">
+        <span className={`px-2 py-0.5 rounded ${theme==='dark'?'bg-violet-900/40 text-violet-400':'bg-violet-100 text-violet-700'}`}>Aktif Dosya: {mockDos.filter(d=>d.durum==='Devam Ediyor').length}</span>
+        <span className={`px-2 py-0.5 rounded ${theme==='dark'?'bg-amber-900/40 text-amber-400':'bg-amber-100 text-amber-700'}`}>Bekleyen Görev: {mockGor.filter(g=>g.durum!=='Tamamlandı').length}</span>
+        <span className="flex items-center gap-1"><Icon name="Calendar" size={11}/>{time.toLocaleDateString('tr-TR')}</span>
+        <span className="flex items-center gap-1"><Icon name="Clock" size={11}/>{time.toLocaleTimeString('tr-TR')}</span>
+        <button onClick={toggleTheme} className={`p-0.5 rounded ${theme==='dark'?'hover:bg-gray-700':'hover:bg-gray-200'}`}><Icon name={theme==='dark'?'Sun':'Moon'} size={12}/></button>
+      </div>
+    </div>
+  );
+};
+
+// MENU BAR
+const MenuBar=({theme,onMenuAction})=>{
+  const[activeMenu,setActiveMenu]=useState(null);
+  const menus={
+    dosya:{label:'Dosya',items:[
+      {label:'Yeni Müvekkil',shortcut:'Ctrl+N',icon:'UserPlus',action:'muvekkil-yeni'},
+      {label:'Yeni Dava Dosyası',shortcut:'Ctrl+D',icon:'FolderPlus',action:'dosya-yeni'},
+      {type:'separator'},
+      {label:'Yazdır',shortcut:'Ctrl+P',icon:'Printer'},
+      {label:'Dışa Aktar',icon:'Download'},
+      {type:'separator'},
+      {label:'Çıkış Yap',icon:'LogOut',action:'logout'},
+    ]},
+    muvekkil:{label:'Müvekkil',items:[
+      {label:'Müvekkil Listesi',shortcut:'F2',action:'muvekkil-liste',icon:'Users'},
+      {label:'Yeni Müvekkil',shortcut:'Ctrl+N',action:'muvekkil-yeni',icon:'UserPlus'},
+      {type:'separator'},
+      {label:'Müvekkil Kartı',action:'muvekkil-kart',icon:'UserCheck'},
+    ]},
+    dava:{label:'Dava/Dosya',items:[
+      {label:'Dosya Listesi',shortcut:'F3',action:'dosya-liste',icon:'FolderOpen'},
+      {label:'Yeni Dosya',shortcut:'Ctrl+D',action:'dosya-yeni',icon:'FolderPlus'},
+      {type:'separator'},
+      {label:'Duruşma Takvimi',action:'durusma-takvim',icon:'CalendarDays'},
+    ]},
+    gorev:{label:'İş Listesi',items:[
+      {label:'Görev Listesi',shortcut:'F4',action:'gorev-liste',icon:'CheckSquare'},
+      {label:'Yeni Görev',action:'gorev-yeni',icon:'PlusCircle'},
+    ]},
+    mali:{label:'Mali Takip',items:[
+      {label:'Alacak-Borç Listesi',shortcut:'F5',action:'mali-liste',icon:'Receipt'},
+      {label:'Yeni Kayıt',action:'mali-yeni',icon:'PlusCircle'},
+      {type:'separator'},
+      {label:'Tahsilat Girişi',action:'tahsilat',icon:'ArrowDownCircle'},
+      {label:'Ödeme Girişi',action:'odeme',icon:'ArrowUpCircle'},
+    ]},
+    rapor:{label:'Raporlar',items:[
+      {label:'Dashboard',shortcut:'F1',action:'dashboard',icon:'LayoutDashboard'},
+      {type:'separator'},
+      {label:'Dosya Raporu',action:'rapor-dosya',icon:'BarChart3'},
+      {label:'Mali Rapor',action:'rapor-mali',icon:'TrendingUp'},
+    ]},
+    ayarlar:{label:'Ayarlar',items:[
+      {label:'Kullanıcı Yönetimi',shortcut:'F9',action:'kullanici-yonetimi',icon:'Shield'},
+      {label:'Ofis Ayarları',action:'ofis-ayarlari',icon:'Settings'},
+      {type:'separator'},
+      {label:'Yetki Grupları',action:'yetki-gruplari',icon:'Lock'},
+    ]},
+  };
+  const menuBg=theme==='dark'?'bg-gray-900 border-gray-700':'bg-gray-50 border-gray-200';
+  const dropBg=theme==='dark'?'bg-gray-800 border border-gray-700':'bg-white border border-gray-200';
+  return(
+    <div className={`h-8 flex items-center px-1 border-b relative ${menuBg}`}>
+      {Object.entries(menus).map(([key,menu])=>(
+        <div key={key} className="relative">
+          <button className={`px-3 py-1 text-sm rounded transition-colors ${activeMenu===key?theme==='dark'?'bg-gray-700 text-white':'bg-gray-200 text-gray-900':theme==='dark'?'text-gray-300 hover:bg-gray-800':'text-gray-700 hover:bg-gray-100'}`}
+            onClick={()=>setActiveMenu(activeMenu===key?null:key)} onMouseEnter={()=>activeMenu&&setActiveMenu(key)}>{menu.label}</button>
+          {activeMenu===key&&(<>
+            <div className="fixed inset-0 z-40" onClick={()=>setActiveMenu(null)}/>
+            <div className={`absolute left-0 top-full mt-0.5 min-w-[220px] py-1 rounded-md shadow-lg z-50 ${dropBg}`}>
+              {menu.items.map((item,idx)=>item.type==='separator'?
+                <div key={idx} className={`my-1 border-t ${theme==='dark'?'border-gray-700':'border-gray-200'}`}/>:
+                <button key={idx} className={`w-full px-3 py-1.5 text-sm text-left flex items-center justify-between ${theme==='dark'?'text-gray-300 hover:bg-gray-700':'text-gray-700 hover:bg-gray-100'}`}
+                  onClick={()=>{setActiveMenu(null);item.action&&onMenuAction(item.action)}}>
+                  <span className="flex items-center gap-2">{item.icon&&<Icon name={item.icon} size={14}/>}{item.label}</span>
+                  {item.shortcut&&<span className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>{item.shortcut}</span>}
+                </button>
+              )}
+            </div>
+          </>)}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// TOOLBAR
+const Toolbar=({theme,onAction})=>{
+  const tools=[
+    {icon:'UserPlus',label:'Yeni Müvekkil',action:'muvekkil-yeni'},
+    {icon:'FolderPlus',label:'Yeni Dosya',action:'dosya-yeni'},
+    {icon:'PlusCircle',label:'Yeni Görev',action:'gorev-yeni'},
+    {type:'separator'},
+    {icon:'Search',label:'Ara',action:'search'},
+    {icon:'RefreshCw',label:'Yenile',action:'refresh'},
+    {type:'separator'},
+    {icon:'Printer',label:'Yazdır',action:'print'},
+    {icon:'Download',label:'Excel',action:'export'},
+  ];
+  const bg=theme==='dark'?'bg-gray-900/50 border-gray-700':'bg-gray-50 border-gray-200';
+  return(
+    <div className={`h-10 flex items-center px-2 gap-1 border-b ${bg}`}>
+      {tools.map((t,i)=>t.type==='separator'?
+        <div key={i} className={`w-px h-6 mx-1 ${theme==='dark'?'bg-gray-700':'bg-gray-300'}`}/>:
+        <button key={i} className={`p-2 rounded flex items-center gap-1 transition-colors ${theme==='dark'?'text-gray-400 hover:bg-gray-700 hover:text-white':'text-gray-600 hover:bg-gray-200 hover:text-gray-900'}`}
+          onClick={()=>onAction(t.action)} title={t.label}><Icon name={t.icon} size={18}/></button>
+      )}
+    </div>
+  );
+};
+
+// TAB BAR
+const TabBar=({tabs,activeTab,onTabChange,onTabClose,theme})=>{
+  const bg=theme==='dark'?'bg-gray-900 border-gray-700':'bg-gray-100 border-gray-300';
+  return(
+    <div className={`h-9 flex items-end px-1 gap-0.5 border-b overflow-x-auto ${bg}`}>
+      {tabs.map(tab=>(
+        <div key={tab.id} className={`group flex items-center gap-2 px-3 py-1.5 rounded-t cursor-pointer transition-colors min-w-[120px] max-w-[200px] ${
+          activeTab===tab.id?theme==='dark'?'bg-gray-800 text-white border-t-2 border-x border-t-violet-500 border-x-gray-700':'bg-white text-gray-900 border-t-2 border-x border-t-violet-500 border-x-gray-300'
+          :theme==='dark'?'text-gray-400 hover:bg-gray-800/50':'text-gray-600 hover:bg-gray-50'}`}
+          onClick={()=>onTabChange(tab.id)}>
+          {tab.icon&&<Icon name={tab.icon} size={14}/>}
+          <span className="text-sm truncate flex-1">{tab.label}</span>
+          {tab.closable!==false&&<button className={`p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity ${theme==='dark'?'hover:bg-gray-600':'hover:bg-gray-200'}`}
+            onClick={e=>{e.stopPropagation();onTabClose(tab.id)}}><Icon name="X" size={12}/></button>}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// CONTEXT MENU
+const ContextMenu=({x,y,items,onClose,theme})=>{
+  useEffect(()=>{const h=()=>onClose();document.addEventListener('click',h);return()=>document.removeEventListener('click',h)},[onClose]);
+  const bg=theme==='dark'?'bg-gray-800 border border-gray-700':'bg-white border border-gray-200';
+  return(
+    <div className={`fixed py-1 min-w-[180px] rounded-md shadow-xl z-[100] ${bg}`} style={{left:x,top:y}}>
+      {items.map((item,i)=>item.type==='separator'?
+        <div key={i} className={`my-1 border-t ${theme==='dark'?'border-gray-700':'border-gray-200'}`}/>:
+        <button key={i} className={`w-full px-3 py-1.5 text-sm text-left flex items-center gap-2 ${item.disabled?theme==='dark'?'text-gray-600':'text-gray-400':theme==='dark'?'text-gray-300 hover:bg-gray-700':'text-gray-700 hover:bg-gray-100'}`}
+          onClick={()=>!item.disabled&&item.action?.()} disabled={item.disabled}>
+          {item.icon&&<Icon name={item.icon} size={14}/>}<span className="flex-1">{item.label}</span>
+          {item.shortcut&&<span className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>{item.shortcut}</span>}
+        </button>
+      )}
+    </div>
+  );
+};
+
+// DATA GRID
+const DataGrid=({columns,data,onRowSelect,onRowDoubleClick,selectedRows=[],theme,onContextMenu})=>{
+  const[sortCfg,setSortCfg]=useState({key:null,dir:'asc'});
+  const sorted=useMemo(()=>{
+    if(!sortCfg.key)return data;
+    return[...data].sort((a,b)=>{if(a[sortCfg.key]<b[sortCfg.key])return sortCfg.dir==='asc'?-1:1;if(a[sortCfg.key]>b[sortCfg.key])return sortCfg.dir==='asc'?1:-1;return 0});
+  },[data,sortCfg]);
+  const hBg=theme==='dark'?'bg-gray-800':'bg-gray-100';
+  const bdr=theme==='dark'?'border-gray-700':'border-gray-300';
+  return(
+    <div className="flex-1 overflow-auto">
+      <table className="w-full border-collapse text-sm">
+        <thead className={`sticky top-0 ${hBg}`}>
+          <tr>
+            <th className={`w-8 p-2 border-b ${bdr}`}><input type="checkbox" className="rounded"/></th>
+            {columns.map(col=>(
+              <th key={col.key} className={`p-2 text-left border-b cursor-pointer select-none ${bdr} ${theme==='dark'?'hover:bg-gray-700':'hover:bg-gray-200'}`}
+                style={{width:col.width}} onClick={()=>setSortCfg(p=>({key:col.key,dir:p.key===col.key&&p.dir==='asc'?'desc':'asc'}))}>
+                <div className="flex items-center gap-1">
+                  <span className={theme==='dark'?'text-gray-300':'text-gray-700'}>{col.label}</span>
+                  {sortCfg.key===col.key&&<Icon name={sortCfg.dir==='asc'?'ChevronUp':'ChevronDown'} size={12}/>}
+                </div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((row,idx)=>(
+            <tr key={row.id} className={`cursor-pointer transition-colors ${
+              selectedRows.includes(row.id)?theme==='dark'?'bg-violet-900/20':'bg-violet-50'
+              :idx%2===0?theme==='dark'?'bg-gray-900':'bg-white':theme==='dark'?'bg-gray-800/50':'bg-gray-50'
+            } ${theme==='dark'?'hover:bg-gray-700':'hover:bg-gray-100'}`}
+              onClick={()=>onRowSelect?.(row.id)} onDoubleClick={()=>onRowDoubleClick?.(row)}
+              onContextMenu={e=>{e.preventDefault();onContextMenu?.(e,row)}}>
+              <td className={`p-2 border-b ${theme==='dark'?'border-gray-800':'border-gray-200'}`}>
+                <input type="checkbox" checked={selectedRows.includes(row.id)} onChange={()=>{}} className="rounded"/>
+              </td>
+              {columns.map(col=>(
+                <td key={col.key} className={`p-2 border-b ${theme==='dark'?'border-gray-800 text-gray-300':'border-gray-200 text-gray-700'}`}>
+                  {col.render?col.render(row[col.key],row,theme):row[col.key]}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+// QUICK FILTER
+const QuickFilter=({filters,onFilterChange,theme,filterOptions=[]})=>{
+  const bg=theme==='dark'?'bg-gray-800/50 border-gray-700':'bg-gray-50 border-gray-200';
+  const inp=theme==='dark'?'bg-gray-800 border-gray-600 text-white placeholder-gray-500':'bg-white border-gray-300 text-gray-900 placeholder-gray-400';
+  return(
+    <div className={`flex items-center gap-2 p-2 border-b ${bg}`}>
+      <div className={`flex items-center gap-2 px-3 py-1.5 rounded border flex-1 max-w-md ${inp} focus-within:border-violet-500`}>
+        <Icon name="Search" size={16} className={theme==='dark'?'text-gray-500':'text-gray-400'}/>
+        <input type="text" placeholder="Hızlı arama..." className="flex-1 bg-transparent outline-none text-sm"
+          value={filters.search||''} onChange={e=>onFilterChange({...filters,search:e.target.value})}/>
+      </div>
+      {filterOptions.map((fo,i)=>(
+        <select key={i} className={`px-3 py-1.5 rounded border text-sm ${inp}`}
+          value={filters[fo.key]||''} onChange={e=>onFilterChange({...filters,[fo.key]:e.target.value})}>
+          <option value="">{fo.allLabel}</option>
+          {fo.options.map(o=><option key={o} value={o}>{o}</option>)}
+        </select>
+      ))}
+    </div>
+  );
+};
+
+// LOGIN SCREEN
+const LoginScreen=({onLogin})=>{
+  const[email,setEmail]=useState('mehmet@hukuk.com');
+  const[pass,setPass]=useState('');
+  return(
+    <div className="h-screen flex items-center justify-center relative overflow-hidden" style={{background:'linear-gradient(135deg,#1e1b4b 0%,#312e81 30%,#4c1d95 60%,#581c87 100%)'}}>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(6)].map((_,i)=>(
+          <div key={i} className="absolute rounded-full opacity-10" style={{
+            width:`${80+i*50}px`,height:`${80+i*50}px`,left:`${10+i*15}%`,top:`${20+(i%3)*25}%`,
+            background:'rgba(139,92,246,0.3)',animation:`float ${4+i}s ease-in-out infinite`,animationDelay:`${i*0.5}s`
+          }}/>
+        ))}
+      </div>
+      <div className="animate-slideIn relative z-10 w-[420px]">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm mb-4 border border-white/20">
+            <Icon name="Scale" size={32} className="text-violet-300"/>
+          </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Proomist Hukuk</h1>
+          <p className="text-violet-300 text-sm mt-1">Avukat Ofis Yönetim Sistemi</p>
+        </div>
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 shadow-2xl">
+          <div className="space-y-4">
+            <div>
+              <label className="text-violet-200 text-xs font-medium">E-posta</label>
+              <div className="mt-1 flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 border border-white/10 focus-within:border-violet-400 transition-colors">
+                <Icon name="Mail" size={16} className="text-violet-400"/>
+                <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="ornek@hukuk.com"
+                  className="flex-1 bg-transparent outline-none text-white placeholder-violet-400/50 text-sm"/>
+              </div>
+            </div>
+            <div>
+              <label className="text-violet-200 text-xs font-medium">Şifre</label>
+              <div className="mt-1 flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 border border-white/10 focus-within:border-violet-400 transition-colors">
+                <Icon name="Lock" size={16} className="text-violet-400"/>
+                <input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••"
+                  className="flex-1 bg-transparent outline-none text-white placeholder-violet-400/50 text-sm"/>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-sm text-violet-300 cursor-pointer">
+                <input type="checkbox" className="rounded"/>Beni hatırla
+              </label>
+              <a href="#" className="text-sm text-violet-300 hover:text-white transition-colors">Şifremi unuttum</a>
+            </div>
+            <button onClick={()=>onLogin({name:'Av. Mehmet Öz',email})}
+              className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors shadow-lg shadow-violet-600/30">
+              Giriş Yap
+            </button>
+          </div>
+        </div>
+        <p className="text-center text-violet-400/60 text-xs mt-6">© 2025 Proomist Governance Consulting</p>
+      </div>
+    </div>
+  );
+};
+
+// DASHBOARD
+const DashboardScreen=({theme,onNavigate})=>{
+  const card=theme==='dark'?'bg-gray-800 border-gray-700':'bg-white border-gray-200';
+  const tAlacak=mockMali.filter(m=>m.tip==='Alacak').reduce((a,b)=>a+b.tutar,0);
+  const tBorc=mockMali.filter(m=>m.tip==='Borç').reduce((a,b)=>a+b.tutar,0);
+  const tahsil=mockMali.filter(m=>m.durum==='Tahsil Edildi').reduce((a,b)=>a+b.tutar,0);
+  const stats=[
+    {label:'Aktif Dosyalar',value:mockDos.filter(d=>d.durum==='Devam Ediyor').length,icon:'FolderOpen',color:'violet',trend:'+2 bu ay',positive:true},
+    {label:'Toplam Müvekkil',value:mockMuv.filter(m=>m.durum==='Aktif').length,icon:'Users',color:'blue',trend:'+1 bu ay',positive:true},
+    {label:'Bekleyen Görev',value:mockGor.filter(g=>g.durum!=='Tamamlandı').length,icon:'CheckSquare',color:'amber',trend:'3 acil',positive:false},
+    {label:'Toplam Alacak',value:fmt(tAlacak-tahsil),icon:'TrendingUp',color:'emerald'},
+  ];
+  const cMap={
+    violet:theme==='dark'?'bg-violet-900/30 text-violet-400':'bg-violet-100 text-violet-600',
+    blue:theme==='dark'?'bg-blue-900/30 text-blue-400':'bg-blue-100 text-blue-600',
+    amber:theme==='dark'?'bg-amber-900/30 text-amber-400':'bg-amber-100 text-amber-600',
+    emerald:theme==='dark'?'bg-emerald-900/30 text-emerald-400':'bg-emerald-100 text-emerald-600',
+  };
+  const shortcuts=[
+    {label:'Müvekkil Listesi',icon:'Users',action:'muvekkil-liste',shortcut:'F2'},
+    {label:'Dosya Listesi',icon:'FolderOpen',action:'dosya-liste',shortcut:'F3'},
+    {label:'Görev Listesi',icon:'CheckSquare',action:'gorev-liste',shortcut:'F4'},
+    {label:'Mali Takip',icon:'Receipt',action:'mali-liste',shortcut:'F5'},
+    {label:'Kullanıcılar',icon:'Shield',action:'kullanici-yonetimi',shortcut:'F9'},
+    {label:'Yeni Dosya',icon:'FolderPlus',action:'dosya-yeni'},
+  ];
+  return(
+    <div className="flex-1 overflow-auto p-6 space-y-6">
+      <div className="grid grid-cols-4 gap-4">
+        {stats.map(s=>(
+          <div key={s.label} className={`p-4 rounded-lg border ${card}`}>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className={`text-sm ${theme==='dark'?'text-gray-400':'text-gray-500'}`}>{s.label}</p>
+                <p className={`text-2xl font-bold mt-1 ${theme==='dark'?'text-white':'text-gray-900'}`}>{s.value}</p>
+                {s.trend&&<div className={`flex items-center gap-1 mt-1 text-sm ${s.positive?'text-emerald-500':'text-amber-500'}`}>
+                  <Icon name={s.positive?'TrendingUp':'AlertTriangle'} size={14}/>{s.trend}
+                </div>}
+              </div>
+              <div className={`p-3 rounded-lg ${cMap[s.color]}`}><Icon name={s.icon} size={24}/></div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        <div className={`p-4 rounded-lg border ${card}`}>
+          <h3 className={`font-semibold mb-4 ${theme==='dark'?'text-white':'text-gray-900'}`}>Hızlı İşlemler</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {shortcuts.map(s=>(
+              <button key={s.label} onClick={()=>onNavigate(s.action)}
+                className={`p-3 rounded-lg border text-left transition-colors ${theme==='dark'?'bg-gray-900 border-gray-700 hover:bg-gray-700':'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}>
+                <div className="flex items-center gap-2">
+                  <Icon name={s.icon} size={16} className={theme==='dark'?'text-violet-400':'text-violet-600'}/>
+                  <span className={`text-sm ${theme==='dark'?'text-gray-300':'text-gray-700'}`}>{s.label}</span>
+                </div>
+                {s.shortcut&&<kbd className={`mt-1 inline-block px-1.5 py-0.5 text-xs rounded font-mono ${theme==='dark'?'bg-gray-700 text-gray-400':'bg-gray-200 text-gray-500'}`}>{s.shortcut}</kbd>}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className={`col-span-2 p-4 rounded-lg border ${card}`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`font-semibold ${theme==='dark'?'text-white':'text-gray-900'}`}>Yaklaşan Duruşmalar</h3>
+            <button className={`text-sm ${theme==='dark'?'text-violet-400':'text-violet-600'}`}>Tümünü Gör →</button>
+          </div>
+          <table className="w-full text-sm">
+            <thead><tr className={theme==='dark'?'text-gray-400':'text-gray-500'}>
+              <th className="text-left py-2">Tarih</th><th className="text-left py-2">Saat</th><th className="text-left py-2">Mahkeme</th><th className="text-left py-2">Dosya</th><th className="text-left py-2">Avukat</th>
+            </tr></thead>
+            <tbody>
+              {yakDur.slice(0,5).map((d,i)=>{
+                const urgent=new Date(d.tarih)-new Date()<7*24*60*60*1000;
+                return(
+                  <tr key={i} className={`border-t ${theme==='dark'?'border-gray-700':'border-gray-200'}`}>
+                    <td className={`py-2 ${urgent?'text-red-500 font-medium':theme==='dark'?'text-gray-300':'text-gray-700'}`}>
+                      {urgent&&<Icon name="AlertTriangle" size={12} className="inline mr-1"/>}{fmtD(d.tarih)}
+                    </td>
+                    <td className={`py-2 ${theme==='dark'?'text-gray-300':'text-gray-700'}`}>{d.saat}</td>
+                    <td className={`py-2 ${theme==='dark'?'text-gray-300':'text-gray-700'}`}>{d.mahkeme}</td>
+                    <td className={`py-2 font-mono text-xs ${theme==='dark'?'text-gray-400':'text-gray-500'}`}>{d.dosyaNo}</td>
+                    <td className={`py-2 ${theme==='dark'?'text-gray-300':'text-gray-700'}`}>{d.avukat}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className={`p-4 rounded-lg border ${card}`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`font-semibold ${theme==='dark'?'text-white':'text-gray-900'}`}>Acil Görevler</h3>
+            <button onClick={()=>onNavigate('gorev-liste')} className={`text-sm ${theme==='dark'?'text-violet-400':'text-violet-600'}`}>Tümü →</button>
+          </div>
+          <div className="space-y-2">
+            {mockGor.filter(g=>g.durum!=='Tamamlandı'&&(g.oncelik==='Acil'||g.oncelik==='Yüksek')).slice(0,4).map(g=>(
+              <div key={g.id} className={`flex items-center gap-3 p-2 rounded ${theme==='dark'?'bg-gray-900':'bg-gray-50'}`}>
+                <div className={`w-2 h-2 rounded-full ${g.oncelik==='Acil'?'bg-red-500 badge-pulse':'bg-amber-500'}`}/>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm truncate ${theme==='dark'?'text-gray-200':'text-gray-800'}`}>{g.baslik}</p>
+                  <p className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>{g.dosyaNo} • {g.atanan}</p>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded" style={theme==='dark'?{background:g.oncelik==='Acil'?'rgba(127,29,29,0.3)':'rgba(120,53,15,0.3)',color:g.oncelik==='Acil'?'#f87171':'#fbbf24'}:{background:g.oncelik==='Acil'?'#fee2e2':'#fef3c7',color:g.oncelik==='Acil'?'#b91c1c':'#92400e'}}>{g.oncelik}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className={`p-4 rounded-lg border ${card}`}>
+          <h3 className={`font-semibold mb-4 ${theme==='dark'?'text-white':'text-gray-900'}`}>Mali Özet</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div className={`p-3 rounded-lg ${theme==='dark'?'bg-emerald-900/20':'bg-emerald-50'}`}>
+              <p className={`text-xs ${theme==='dark'?'text-emerald-400':'text-emerald-600'}`}>Toplam Alacak</p>
+              <p className="text-lg font-bold text-emerald-500">{fmt(tAlacak)}</p>
+            </div>
+            <div className={`p-3 rounded-lg ${theme==='dark'?'bg-rose-900/20':'bg-rose-50'}`}>
+              <p className={`text-xs ${theme==='dark'?'text-rose-400':'text-rose-600'}`}>Toplam Gider</p>
+              <p className="text-lg font-bold text-rose-500">{fmt(tBorc)}</p>
+            </div>
+            <div className={`p-3 rounded-lg ${theme==='dark'?'bg-blue-900/20':'bg-blue-50'}`}>
+              <p className={`text-xs ${theme==='dark'?'text-blue-400':'text-blue-600'}`}>Tahsil Edilen</p>
+              <p className="text-lg font-bold text-blue-500">{fmt(tahsil)}</p>
+            </div>
+            <div className={`p-3 rounded-lg border-2 ${theme==='dark'?'bg-gray-900 border-violet-500':'bg-white border-violet-400'}`}>
+              <p className={`text-xs ${theme==='dark'?'text-violet-400':'text-violet-600'}`}>Net Bakiye</p>
+              <p className={`text-lg font-bold ${theme==='dark'?'text-white':'text-gray-900'}`}>{fmt(tAlacak-tBorc)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// MÜVEKKİL LİSTESİ
+const MuvekkilListeScreen=({theme,onOpenMuvekkil})=>{
+  const[filters,setFilters]=useState({search:'',tip:'',durum:''});
+  const[selRows,setSelRows]=useState([]);
+  const[ctx,setCtx]=useState(null);
+  const cols=[
+    {key:'kod',label:'Müvekkil Kodu',width:'110px'},
+    {key:'ad',label:'Ad / Ünvan',width:'200px',render:v=><span className="font-medium">{v}</span>},
+    {key:'tip',label:'Tip',width:'100px',render:(v,r,t)=><span className={`px-2 py-0.5 rounded text-xs ${v==='Bireysel'?t==='dark'?'bg-blue-900/30 text-blue-400':'bg-blue-100 text-blue-700':t==='dark'?'bg-violet-900/30 text-violet-400':'bg-violet-100 text-violet-700'}`}>{v}</span>},
+    {key:'telefon',label:'Telefon',width:'130px'},
+    {key:'email',label:'E-posta',width:'180px'},
+    {key:'il',label:'İl',width:'90px'},
+    {key:'aktifDosya',label:'Dosya',width:'60px',render:v=><span className="font-mono">{v}</span>},
+    {key:'durum',label:'Durum',width:'80px',render:(v,r,t)=><span className={`px-2 py-0.5 rounded text-xs ${v==='Aktif'?t==='dark'?'bg-emerald-900/30 text-emerald-400':'bg-emerald-100 text-emerald-700':t==='dark'?'bg-gray-700 text-gray-400':'bg-gray-200 text-gray-600'}`}>{v}</span>},
+  ];
+  const fd=mockMuv.filter(r=>{
+    if(filters.search&&!r.ad.toLowerCase().includes(filters.search.toLowerCase())&&!r.kod.toLowerCase().includes(filters.search.toLowerCase()))return false;
+    if(filters.tip&&r.tip!==filters.tip)return false;
+    if(filters.durum&&r.durum!==filters.durum)return false;
+    return true;
+  });
+  return(
+    <div className="flex-1 flex flex-col">
+      <QuickFilter filters={filters} onFilterChange={setFilters} theme={theme}
+        filterOptions={[{key:'tip',allLabel:'Tüm Tipler',options:['Bireysel','Kurumsal']},{key:'durum',allLabel:'Tüm Durumlar',options:['Aktif','Pasif']}]}/>
+      <DataGrid columns={cols} data={fd} selectedRows={selRows}
+        onRowSelect={id=>setSelRows(p=>p.includes(id)?p.filter(r=>r!==id):[...p,id])}
+        onRowDoubleClick={row=>onOpenMuvekkil(row)} theme={theme}
+        onContextMenu={(e,row)=>setCtx({x:e.clientX,y:e.clientY,items:[
+          {label:'Kartı Aç',icon:'Eye',action:()=>onOpenMuvekkil(row)},
+          {label:'Düzenle',icon:'Edit'},{type:'separator'},
+          {label:'Dosyalarını Gör',icon:'FolderOpen'},
+          {label:'Mali Durum',icon:'Receipt'},{type:'separator'},
+          {label:'Sil',icon:'Trash2',disabled:true},
+        ]})}/>
+      <div className={`h-8 flex items-center justify-between px-3 border-t text-xs ${theme==='dark'?'bg-gray-800 border-gray-700 text-gray-400':'bg-gray-100 border-gray-300 text-gray-600'}`}>
+        <span>{fd.length} kayıt ({selRows.length} seçili)</span>
+        <span>Aktif: {fd.filter(r=>r.durum==='Aktif').length} | Pasif: {fd.filter(r=>r.durum==='Pasif').length}</span>
+      </div>
+      {ctx&&<ContextMenu {...ctx} onClose={()=>setCtx(null)} theme={theme}/>}
+    </div>
+  );
+};
+
+// MÜVEKKİL KART
+const MuvekkilKartScreen=({muvekkil,theme})=>{
+  const[aTab,setATab]=useState('genel');
+  const m=muvekkil||mockMuv[0];
+  const tabs=[{id:'genel',label:'Genel Bilgiler',icon:'Info'},{id:'dosyalar',label:'Dosyalar',icon:'FolderOpen'},{id:'mali',label:'Mali Durum',icon:'Receipt'},{id:'notlar',label:'Notlar',icon:'StickyNote'}];
+  const inp=theme==='dark'?'bg-gray-800 border-gray-700 text-white':'bg-white border-gray-300 text-gray-900';
+  const roInp=theme==='dark'?'bg-gray-800 border-gray-700 text-white':'bg-gray-50 border-gray-300 text-gray-900';
+  return(
+    <div className="flex-1 flex flex-col">
+      <div className={`p-4 border-b ${theme==='dark'?'bg-gray-800/50 border-gray-700':'bg-gray-50 border-gray-200'}`}>
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={`px-2 py-0.5 rounded text-xs font-medium ${theme==='dark'?'bg-violet-900/30 text-violet-400':'bg-violet-100 text-violet-700'}`}>{m.kod}</span>
+              <span className={`px-2 py-0.5 rounded text-xs ${m.tip==='Bireysel'?theme==='dark'?'bg-blue-900/30 text-blue-400':'bg-blue-100 text-blue-700':theme==='dark'?'bg-emerald-900/30 text-emerald-400':'bg-emerald-100 text-emerald-700'}`}>{m.tip}</span>
+              <span className={`px-2 py-0.5 rounded text-xs ${m.durum==='Aktif'?theme==='dark'?'bg-emerald-900/30 text-emerald-400':'bg-emerald-100 text-emerald-700':theme==='dark'?'bg-gray-700 text-gray-400':'bg-gray-200 text-gray-500'}`}>{m.durum}</span>
+            </div>
+            <h2 className={`text-xl font-bold mt-2 ${theme==='dark'?'text-white':'text-gray-900'}`}>{m.ad}</h2>
+            <p className={`text-sm mt-1 ${theme==='dark'?'text-gray-400':'text-gray-500'}`}>{m.tckn?`TCKN: ${m.tckn}`:`VKN: ${m.vkn}`} | {m.il}</p>
+          </div>
+          <div className="text-right">
+            <p className={`text-sm ${theme==='dark'?'text-gray-400':'text-gray-500'}`}>Aktif Dosya</p>
+            <p className={`text-3xl font-bold ${theme==='dark'?'text-violet-400':'text-violet-600'}`}>{m.aktifDosya}</p>
+          </div>
+        </div>
+        <div className="flex gap-1 mt-4">
+          {tabs.map(t=>(
+            <button key={t.id} onClick={()=>setATab(t.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-t text-sm transition-colors ${
+                aTab===t.id?theme==='dark'?'bg-gray-900 text-white border-t-2 border-x border-t-violet-500 border-x-gray-700':'bg-white text-gray-900 border-t-2 border-x border-t-violet-500 border-x-gray-300'
+                :theme==='dark'?'text-gray-400 hover:bg-gray-700':'text-gray-600 hover:bg-gray-100'}`}>
+              <Icon name={t.icon} size={16}/>{t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className={`flex-1 overflow-auto p-4 ${theme==='dark'?'bg-gray-900':'bg-white'}`}>
+        {aTab==='genel'&&(
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h3 className={`font-semibold pb-2 border-b ${theme==='dark'?'text-white border-gray-700':'text-gray-900 border-gray-200'}`}>Kimlik Bilgileri</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Müvekkil Kodu</label><input type="text" value={m.kod} readOnly className={`w-full mt-1 px-3 py-2 rounded border text-sm ${roInp}`}/></div>
+                <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Tip</label><select className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`} defaultValue={m.tip}><option>Bireysel</option><option>Kurumsal</option></select></div>
+              </div>
+              <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Ad / Ünvan</label><input type="text" defaultValue={m.ad} className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`}/></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>{m.tckn?'TCKN':'VKN'}</label><input type="text" defaultValue={m.tckn||m.vkn} className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`}/></div>
+                <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Kayıt Tarihi</label><input type="text" value={fmtD(m.kayitTarihi)} readOnly className={`w-full mt-1 px-3 py-2 rounded border text-sm ${roInp}`}/></div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h3 className={`font-semibold pb-2 border-b ${theme==='dark'?'text-white border-gray-700':'text-gray-900 border-gray-200'}`}>İletişim Bilgileri</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Telefon</label><input type="text" defaultValue={m.telefon} className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`}/></div>
+                <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>E-posta</label><input type="email" defaultValue={m.email} className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`}/></div>
+              </div>
+              <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>İl</label><input type="text" defaultValue={m.il} className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`}/></div>
+              <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Adres</label><textarea defaultValue={m.adres} rows={3} className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`}/></div>
+            </div>
+          </div>
+        )}
+        {aTab==='dosyalar'&&(
+          <div>
+            <h3 className={`font-semibold mb-4 ${theme==='dark'?'text-white':'text-gray-900'}`}>Müvekkile Ait Dosyalar</h3>
+            <table className="w-full text-sm">
+              <thead><tr className={theme==='dark'?'text-gray-400':'text-gray-500'}>
+                <th className="text-left py-2">Dosya No</th><th className="text-left py-2">Mahkeme</th><th className="text-left py-2">Konu</th><th className="text-left py-2">Durum</th><th className="text-right py-2">Tutar</th>
+              </tr></thead>
+              <tbody>{mockDos.filter(d=>d.muvekkil===m.ad).map(d=>(
+                <tr key={d.id} className={`border-t ${theme==='dark'?'border-gray-700':'border-gray-200'}`}>
+                  <td className={`py-2 font-mono text-xs ${theme==='dark'?'text-gray-400':'text-gray-500'}`}>{d.dosyaNo}</td>
+                  <td className={`py-2 ${theme==='dark'?'text-gray-300':'text-gray-700'}`}>{d.mahkeme}</td>
+                  <td className={`py-2 ${theme==='dark'?'text-gray-300':'text-gray-700'}`}>{d.konu}</td>
+                  <td className="py-2"><span className={`px-2 py-0.5 rounded text-xs ${d.durum==='Devam Ediyor'?theme==='dark'?'bg-blue-900/30 text-blue-400':'bg-blue-100 text-blue-700':theme==='dark'?'bg-emerald-900/30 text-emerald-400':'bg-emerald-100 text-emerald-700'}`}>{d.durum}</span></td>
+                  <td className={`py-2 text-right font-medium ${theme==='dark'?'text-white':'text-gray-900'}`}>{d.tutar>0?fmt(d.tutar):'-'}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      <div className={`h-12 flex items-center justify-end px-4 gap-2 border-t ${theme==='dark'?'bg-gray-800 border-gray-700':'bg-gray-50 border-gray-200'}`}>
+        <button className={`px-4 py-2 rounded text-sm ${theme==='dark'?'bg-gray-700 text-gray-300 hover:bg-gray-600':'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>İptal</button>
+        <button className="px-4 py-2 rounded text-sm bg-violet-600 text-white hover:bg-violet-500 font-medium">Kaydet</button>
+      </div>
+    </div>
+  );
+};
+
+// DOSYA LİSTESİ
+const DosyaListeScreen=({theme,onOpenDosya})=>{
+  const[filters,setFilters]=useState({search:'',tur:'',durum:''});
+  const[selRows,setSelRows]=useState([]);
+  const[ctx,setCtx]=useState(null);
+  const cols=[
+    {key:'dosyaNo',label:'Dosya No',width:'110px',render:v=><span className="font-mono text-xs">{v}</span>},
+    {key:'esas',label:'Esas No',width:'100px',render:v=><span className="font-mono text-xs">{v}</span>},
+    {key:'mahkeme',label:'Mahkeme',width:'200px'},
+    {key:'muvekkil',label:'Müvekkil',width:'150px',render:v=><span className="font-medium">{v}</span>},
+    {key:'konu',label:'Konu',width:'150px'},
+    {key:'tur',label:'Tür',width:'80px',render:(v,r,t)=>{
+      const c={Hukuk:'blue',İş:'amber',Aile:'pink',Ceza:'red',İcra:'orange',Ticaret:'emerald',İdare:'violet'}[v]||'gray';
+      return <span className="px-2 py-0.5 rounded text-xs" style={t==='dark'?{background:`rgba(139,92,246,0.15)`,color:'#a78bfa'}:{background:'#f3e8ff',color:'#7c3aed'}}>{v}</span>;
+    }},
+    {key:'durum',label:'Durum',width:'120px',render:(v,r,t)=><span className={`px-2 py-0.5 rounded text-xs ${v==='Devam Ediyor'?t==='dark'?'bg-blue-900/30 text-blue-400':'bg-blue-100 text-blue-700':t==='dark'?'bg-emerald-900/30 text-emerald-400':'bg-emerald-100 text-emerald-700'}`}>{v}</span>},
+    {key:'avukat',label:'Avukat',width:'130px'},
+  ];
+  const fd=mockDos.filter(r=>{
+    if(filters.search&&!r.dosyaNo.toLowerCase().includes(filters.search.toLowerCase())&&!r.muvekkil.toLowerCase().includes(filters.search.toLowerCase())&&!r.konu.toLowerCase().includes(filters.search.toLowerCase()))return false;
+    if(filters.tur&&r.tur!==filters.tur)return false;
+    if(filters.durum&&r.durum!==filters.durum)return false;
+    return true;
+  });
+  return(
+    <div className="flex-1 flex flex-col">
+      <QuickFilter filters={filters} onFilterChange={setFilters} theme={theme}
+        filterOptions={[{key:'tur',allLabel:'Tüm Türler',options:['Hukuk','İş','Aile','Ceza','İcra','Ticaret','İdare']},{key:'durum',allLabel:'Tüm Durumlar',options:['Devam Ediyor','Sonuçlandı']}]}/>
+      <DataGrid columns={cols} data={fd} selectedRows={selRows}
+        onRowSelect={id=>setSelRows(p=>p.includes(id)?p.filter(r=>r!==id):[...p,id])}
+        onRowDoubleClick={row=>onOpenDosya?.(row)} theme={theme}
+        onContextMenu={(e,row)=>setCtx({x:e.clientX,y:e.clientY,items:[
+          {label:'Dosyayı Aç',icon:'Eye',action:()=>onOpenDosya?.(row)},
+          {label:'Düzenle',icon:'Edit'},{type:'separator'},
+          {label:'Görev Ekle',icon:'PlusCircle'},{label:'Belge Ekle',icon:'Paperclip'},
+          {type:'separator'},{label:'Sil',icon:'Trash2',disabled:true},
+        ]})}/>
+      <div className={`h-8 flex items-center justify-between px-3 border-t text-xs ${theme==='dark'?'bg-gray-800 border-gray-700 text-gray-400':'bg-gray-100 border-gray-300 text-gray-600'}`}>
+        <span>{fd.length} dosya ({selRows.length} seçili)</span>
+        <span>Devam Eden: {fd.filter(r=>r.durum==='Devam Ediyor').length} | Sonuçlanan: {fd.filter(r=>r.durum==='Sonuçlandı').length}</span>
+      </div>
+      {ctx&&<ContextMenu {...ctx} onClose={()=>setCtx(null)} theme={theme}/>}
+    </div>
+  );
+};
+
+// DOSYA KART
+const DosyaKartScreen=({dosya,theme})=>{
+  const[aTab,setATab]=useState('genel');
+  const d=dosya||mockDos[0];
+  const tabs=[{id:'genel',label:'Genel',icon:'Info'},{id:'durusma',label:'Duruşmalar',icon:'CalendarDays'},{id:'belgeler',label:'Belgeler',icon:'Paperclip'},{id:'gorevler',label:'Görevler',icon:'CheckSquare'}];
+  const inp=theme==='dark'?'bg-gray-800 border-gray-700 text-white':'bg-white border-gray-300 text-gray-900';
+  const roInp=theme==='dark'?'bg-gray-800 border-gray-700 text-white':'bg-gray-50 border-gray-300 text-gray-900';
+  return(
+    <div className="flex-1 flex flex-col">
+      <div className={`p-4 border-b ${theme==='dark'?'bg-gray-800/50 border-gray-700':'bg-gray-50 border-gray-200'}`}>
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={`px-2 py-0.5 rounded text-xs font-mono font-medium ${theme==='dark'?'bg-violet-900/30 text-violet-400':'bg-violet-100 text-violet-700'}`}>{d.dosyaNo}</span>
+              <span className={`px-2 py-0.5 rounded text-xs ${d.durum==='Devam Ediyor'?theme==='dark'?'bg-blue-900/30 text-blue-400':'bg-blue-100 text-blue-700':theme==='dark'?'bg-emerald-900/30 text-emerald-400':'bg-emerald-100 text-emerald-700'}`}>{d.durum}</span>
+              <span className={`px-2 py-0.5 rounded text-xs ${theme==='dark'?'bg-gray-700 text-gray-300':'bg-gray-200 text-gray-600'}`}>{d.tur}</span>
+            </div>
+            <h2 className={`text-xl font-bold mt-2 ${theme==='dark'?'text-white':'text-gray-900'}`}>{d.konu}</h2>
+            <p className={`text-sm mt-1 ${theme==='dark'?'text-gray-400':'text-gray-500'}`}>{d.mahkeme} | Esas: {d.esas}</p>
+            <p className={`text-sm ${theme==='dark'?'text-gray-400':'text-gray-500'}`}>{d.muvekkil} vs {d.karsiTaraf}</p>
+          </div>
+          <div className="text-right">
+            <p className={`text-sm ${theme==='dark'?'text-gray-400':'text-gray-500'}`}>Sonraki Duruşma</p>
+            <p className={`text-lg font-bold ${d.sonrakiDurusma!=='-'?'text-amber-500':theme==='dark'?'text-gray-600':'text-gray-400'}`}>{d.sonrakiDurusma!=='-'?fmtD(d.sonrakiDurusma):'Yok'}</p>
+            {d.tutar>0&&<><p className={`text-sm mt-2 ${theme==='dark'?'text-gray-400':'text-gray-500'}`}>Dava Değeri</p>
+            <p className={`text-lg font-bold ${theme==='dark'?'text-white':'text-gray-900'}`}>{fmt(d.tutar)}</p></>}
+          </div>
+        </div>
+        <div className="flex gap-1 mt-4">
+          {tabs.map(t=>(
+            <button key={t.id} onClick={()=>setATab(t.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-t text-sm transition-colors ${
+                aTab===t.id?theme==='dark'?'bg-gray-900 text-white border-t-2 border-x border-t-violet-500 border-x-gray-700':'bg-white text-gray-900 border-t-2 border-x border-t-violet-500 border-x-gray-300'
+                :theme==='dark'?'text-gray-400 hover:bg-gray-700':'text-gray-600 hover:bg-gray-100'}`}>
+              <Icon name={t.icon} size={16}/>{t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className={`flex-1 overflow-auto p-4 ${theme==='dark'?'bg-gray-900':'bg-white'}`}>
+        {aTab==='genel'&&(
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h3 className={`font-semibold pb-2 border-b ${theme==='dark'?'text-white border-gray-700':'text-gray-900 border-gray-200'}`}>Dosya Bilgileri</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Dosya No</label><input type="text" value={d.dosyaNo} readOnly className={`w-full mt-1 px-3 py-2 rounded border text-sm ${roInp}`}/></div>
+                <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Esas No</label><input type="text" defaultValue={d.esas} className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`}/></div>
+              </div>
+              <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Mahkeme</label><input type="text" defaultValue={d.mahkeme} className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`}/></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Dava Türü</label><select className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`} defaultValue={d.tur}><option>Hukuk</option><option>İş</option><option>Aile</option><option>Ceza</option><option>İcra</option><option>Ticaret</option><option>İdare</option></select></div>
+                <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Durum</label><select className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`} defaultValue={d.durum}><option>Devam Ediyor</option><option>Sonuçlandı</option><option>Ertelendi</option></select></div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h3 className={`font-semibold pb-2 border-b ${theme==='dark'?'text-white border-gray-700':'text-gray-900 border-gray-200'}`}>Taraf Bilgileri</h3>
+              <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Müvekkil</label><input type="text" defaultValue={d.muvekkil} className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`}/></div>
+              <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Karşı Taraf</label><input type="text" defaultValue={d.karsiTaraf} className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`}/></div>
+              <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Sorumlu Avukat</label><select className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`} defaultValue={d.avukat}><option>Av. Mehmet Öz</option><option>Av. Ayşe Kaya</option></select></div>
+              <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Dava Değeri</label><input type="text" defaultValue={d.tutar>0?d.tutar:''} className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`}/></div>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className={`h-12 flex items-center justify-end px-4 gap-2 border-t ${theme==='dark'?'bg-gray-800 border-gray-700':'bg-gray-50 border-gray-200'}`}>
+        <button className={`px-4 py-2 rounded text-sm ${theme==='dark'?'bg-gray-700 text-gray-300 hover:bg-gray-600':'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>İptal</button>
+        <button className="px-4 py-2 rounded text-sm bg-violet-600 text-white hover:bg-violet-500 font-medium">Kaydet</button>
+      </div>
+    </div>
+  );
+};
+
+// GÖREV LİSTESİ
+const GorevListeScreen=({theme})=>{
+  const[filters,setFilters]=useState({search:'',oncelik:'',durum:''});
+  const[selRows,setSelRows]=useState([]);
+  const[view,setView]=useState('list');
+  const cols=[
+    {key:'baslik',label:'Görev',width:'250px',render:v=><span className="font-medium">{v}</span>},
+    {key:'dosyaNo',label:'Dosya No',width:'110px',render:v=><span className="font-mono text-xs">{v}</span>},
+    {key:'kategori',label:'Kategori',width:'120px',render:(v,r,t)=><span className={`px-2 py-0.5 rounded text-xs ${t==='dark'?'bg-gray-700 text-gray-300':'bg-gray-200 text-gray-600'}`}>{v}</span>},
+    {key:'atanan',label:'Atanan',width:'130px'},
+    {key:'oncelik',label:'Öncelik',width:'80px',render:(v,r,t)=>{
+      const s={Acil:{l:'bg-red-100 text-red-700',d:'bg-red-900/30 text-red-400'},Yüksek:{l:'bg-amber-100 text-amber-700',d:'bg-amber-900/30 text-amber-400'},Normal:{l:'bg-blue-100 text-blue-700',d:'bg-blue-900/30 text-blue-400'},Düşük:{l:'bg-gray-100 text-gray-600',d:'bg-gray-700 text-gray-400'}}[v]||{l:'bg-gray-100',d:'bg-gray-700'};
+      return <span className={`px-2 py-0.5 rounded text-xs ${t==='dark'?s.d:s.l}`}>{v}</span>;
+    }},
+    {key:'sonTarih',label:'Son Tarih',width:'100px',render:(v,r)=>{
+      const over=new Date(v)<new Date()&&r.durum!=='Tamamlandı';
+      return <span className={over?'text-red-500 font-medium':''}>{fmtD(v)}</span>;
+    }},
+    {key:'durum',label:'Durum',width:'110px',render:(v,r,t)=>{
+      const s={Tamamlandı:{l:'bg-emerald-100 text-emerald-700',d:'bg-emerald-900/30 text-emerald-400'},'Devam Ediyor':{l:'bg-blue-100 text-blue-700',d:'bg-blue-900/30 text-blue-400'},Bekliyor:{l:'bg-gray-100 text-gray-600',d:'bg-gray-700 text-gray-400'}}[v]||{l:'bg-gray-100',d:'bg-gray-700'};
+      return <span className={`px-2 py-0.5 rounded text-xs ${t==='dark'?s.d:s.l}`}>{v}</span>;
+    }},
+  ];
+  const fd=mockGor.filter(r=>{
+    if(filters.search&&!r.baslik.toLowerCase().includes(filters.search.toLowerCase()))return false;
+    if(filters.oncelik&&r.oncelik!==filters.oncelik)return false;
+    if(filters.durum&&r.durum!==filters.durum)return false;
+    return true;
+  });
+  const kanbanCols=['Bekliyor','Devam Ediyor','Tamamlandı'];
+  if(view==='kanban'){
+    return(
+      <div className="flex-1 flex flex-col">
+        <div className={`flex items-center justify-between p-2 border-b ${theme==='dark'?'bg-gray-800/50 border-gray-700':'bg-gray-50 border-gray-200'}`}>
+          <span className={`text-sm font-medium px-2 ${theme==='dark'?'text-gray-300':'text-gray-700'}`}>Kanban Görünümü</span>
+          <div className="flex gap-2">
+            <button onClick={()=>setView('list')} className={`px-3 py-1.5 rounded text-sm ${theme==='dark'?'bg-gray-700 text-gray-300':'bg-gray-200 text-gray-700'}`}><Icon name="List" size={14}/></button>
+            <button className="px-3 py-1.5 rounded text-sm bg-violet-600 text-white"><Icon name="Columns3" size={14}/></button>
+          </div>
+        </div>
+        <div className="flex-1 flex gap-4 p-4 overflow-x-auto">
+          {kanbanCols.map(col=>(
+            <div key={col} className={`flex-1 min-w-[280px] rounded-lg ${theme==='dark'?'bg-gray-800':'bg-gray-100'}`}>
+              <div className={`p-3 font-semibold text-sm border-b ${theme==='dark'?'text-gray-200 border-gray-700':'text-gray-800 border-gray-200'}`}>
+                {col} ({mockGor.filter(g=>g.durum===col).length})
+              </div>
+              <div className="p-2 space-y-2 overflow-y-auto" style={{maxHeight:'calc(100vh - 250px)'}}>
+                {mockGor.filter(g=>g.durum===col).map(g=>(
+                  <div key={g.id} className={`p-3 rounded-lg border ${theme==='dark'?'bg-gray-900 border-gray-700':'bg-white border-gray-200'}`}>
+                    <p className={`text-sm font-medium ${theme==='dark'?'text-gray-200':'text-gray-800'}`}>{g.baslik}</p>
+                    <p className={`text-xs mt-1 ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>{g.dosyaNo}</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs px-2 py-0.5 rounded" style={theme==='dark'?{background:g.oncelik==='Acil'?'rgba(127,29,29,0.3)':g.oncelik==='Yüksek'?'rgba(120,53,15,0.3)':'rgba(55,65,81,0.5)',color:g.oncelik==='Acil'?'#f87171':g.oncelik==='Yüksek'?'#fbbf24':'#9ca3af'}:{background:g.oncelik==='Acil'?'#fee2e2':g.oncelik==='Yüksek'?'#fef3c7':'#f3f4f6',color:g.oncelik==='Acil'?'#b91c1c':g.oncelik==='Yüksek'?'#92400e':'#6b7280'}}>{g.oncelik}</span>
+                      <span className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>{g.atanan}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return(
+    <div className="flex-1 flex flex-col">
+      <div className={`flex items-center p-0 border-b-0 ${theme==='dark'?'':''}}`}>
+        <div className="flex-1"><QuickFilter filters={filters} onFilterChange={setFilters} theme={theme}
+          filterOptions={[{key:'oncelik',allLabel:'Tüm Öncelikler',options:['Acil','Yüksek','Normal','Düşük']},{key:'durum',allLabel:'Tüm Durumlar',options:['Bekliyor','Devam Ediyor','Tamamlandı']}]}/></div>
+        <div className="flex gap-2 pr-2">
+          <button onClick={()=>setView('list')} className="px-3 py-1.5 rounded text-sm bg-violet-600 text-white"><Icon name="List" size={14}/></button>
+          <button onClick={()=>setView('kanban')} className={`px-3 py-1.5 rounded text-sm ${theme==='dark'?'bg-gray-700 text-gray-300':'bg-gray-200 text-gray-700'}`}><Icon name="Columns3" size={14}/></button>
+        </div>
+      </div>
+      <DataGrid columns={cols} data={fd} selectedRows={selRows}
+        onRowSelect={id=>setSelRows(p=>p.includes(id)?p.filter(r=>r!==id):[...p,id])} theme={theme}/>
+      <div className={`h-8 flex items-center justify-between px-3 border-t text-xs ${theme==='dark'?'bg-gray-800 border-gray-700 text-gray-400':'bg-gray-100 border-gray-300 text-gray-600'}`}>
+        <span>{fd.length} görev</span>
+        <span>Acil: {fd.filter(g=>g.oncelik==='Acil').length} | Tamamlanan: {fd.filter(g=>g.durum==='Tamamlandı').length}</span>
+      </div>
+    </div>
+  );
+};
+
+// MALİ TAKİP
+const MaliTakipScreen=({theme})=>{
+  const[filters,setFilters]=useState({search:'',tip:'',durum:''});
+  const[selRows,setSelRows]=useState([]);
+  const cols=[
+    {key:'tarih',label:'Tarih',width:'100px',render:v=>fmtD(v)},
+    {key:'muvekkil',label:'Müvekkil',width:'160px',render:v=><span className="font-medium">{v}</span>},
+    {key:'dosyaNo',label:'Dosya No',width:'110px',render:v=><span className="font-mono text-xs">{v}</span>},
+    {key:'aciklama',label:'Açıklama',width:'200px'},
+    {key:'tip',label:'Tip',width:'80px',render:(v,r,t)=><span className={`px-2 py-0.5 rounded text-xs ${v==='Alacak'?t==='dark'?'bg-emerald-900/30 text-emerald-400':'bg-emerald-100 text-emerald-700':t==='dark'?'bg-rose-900/30 text-rose-400':'bg-rose-100 text-rose-700'}`}>{v}</span>},
+    {key:'tutar',label:'Tutar',width:'120px',render:(v,r)=><span className={`font-medium ${r.tip==='Alacak'?'text-emerald-500':'text-rose-500'}`}>{fmt(v)}</span>},
+    {key:'durum',label:'Durum',width:'110px',render:(v,r,t)=>{
+      const s={'Tahsil Edildi':{l:'bg-emerald-100 text-emerald-700',d:'bg-emerald-900/30 text-emerald-400'},Ödendi:{l:'bg-emerald-100 text-emerald-700',d:'bg-emerald-900/30 text-emerald-400'},'Kısmi Ödendi':{l:'bg-amber-100 text-amber-700',d:'bg-amber-900/30 text-amber-400'},Bekliyor:{l:'bg-gray-100 text-gray-600',d:'bg-gray-700 text-gray-400'}}[v]||{l:'bg-gray-100',d:'bg-gray-700'};
+      return <span className={`px-2 py-0.5 rounded text-xs ${t==='dark'?s.d:s.l}`}>{v}</span>;
+    }},
+  ];
+  const fd=mockMali.filter(r=>{
+    if(filters.search&&!r.aciklama.toLowerCase().includes(filters.search.toLowerCase())&&!r.muvekkil.toLowerCase().includes(filters.search.toLowerCase()))return false;
+    if(filters.tip&&r.tip!==filters.tip)return false;
+    if(filters.durum&&r.durum!==filters.durum)return false;
+    return true;
+  });
+  const tA=fd.filter(m=>m.tip==='Alacak').reduce((a,b)=>a+b.tutar,0);
+  const tB=fd.filter(m=>m.tip==='Borç').reduce((a,b)=>a+b.tutar,0);
+  return(
+    <div className="flex-1 flex flex-col">
+      <QuickFilter filters={filters} onFilterChange={setFilters} theme={theme}
+        filterOptions={[{key:'tip',allLabel:'Tüm Tipler',options:['Alacak','Borç']},{key:'durum',allLabel:'Tüm Durumlar',options:['Bekliyor','Tahsil Edildi','Ödendi','Kısmi Ödendi']}]}/>
+      <DataGrid columns={cols} data={fd} selectedRows={selRows}
+        onRowSelect={id=>setSelRows(p=>p.includes(id)?p.filter(r=>r!==id):[...p,id])} theme={theme}/>
+      <div className={`h-8 flex items-center justify-between px-3 border-t text-xs ${theme==='dark'?'bg-gray-800 border-gray-700 text-gray-400':'bg-gray-100 border-gray-300 text-gray-600'}`}>
+        <span>{fd.length} kayıt</span>
+        <div className="flex items-center gap-4">
+          <span>Alacak: <strong className="text-emerald-500">{fmt(tA)}</strong></span>
+          <span>Borç: <strong className="text-rose-500">{fmt(tB)}</strong></span>
+          <span>Net: <strong className={tA-tB>=0?'text-emerald-500':'text-rose-500'}>{fmt(tA-tB)}</strong></span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// KULLANICI YÖNETİMİ
+const KullaniciYonetimiScreen=({theme})=>{
+  const[selUser,setSelUser]=useState(null);
+  const inp=theme==='dark'?'bg-gray-800 border-gray-700 text-white':'bg-white border-gray-300 text-gray-900';
+  const rolC={Yönetici:theme==='dark'?'bg-violet-900/30 text-violet-400':'bg-violet-100 text-violet-700',Avukat:theme==='dark'?'bg-blue-900/30 text-blue-400':'bg-blue-100 text-blue-700',Stajyer:theme==='dark'?'bg-amber-900/30 text-amber-400':'bg-amber-100 text-amber-700',Sekreter:theme==='dark'?'bg-emerald-900/30 text-emerald-400':'bg-emerald-100 text-emerald-700'};
+  const yetkiler=[{modul:'Müvekkil Yönetimi',y:true,a:true,s:true,sk:true},{modul:'Dosya/Dava Yönetimi',y:true,a:true,s:true,sk:false},{modul:'Mali Takip',y:true,a:true,s:false,sk:false},{modul:'Raporlama',y:true,a:true,s:false,sk:false},{modul:'Kullanıcı Yönetimi',y:true,a:false,s:false,sk:false},{modul:'Görev Yönetimi',y:true,a:true,s:true,sk:true}];
+  return(
+    <div className="flex-1 flex">
+      <div className={`w-80 border-r flex flex-col ${theme==='dark'?'bg-gray-800/50 border-gray-700':'bg-gray-50 border-gray-200'}`}>
+        <div className={`p-3 border-b ${theme==='dark'?'border-gray-700':'border-gray-200'}`}>
+          <h3 className={`font-semibold ${theme==='dark'?'text-white':'text-gray-900'}`}>Kullanıcılar</h3>
+        </div>
+        <div className="flex-1 overflow-auto">
+          {mockKul.map(u=>(
+            <div key={u.id} onClick={()=>setSelUser(u)} className={`p-3 border-b cursor-pointer transition-colors ${selUser?.id===u.id?theme==='dark'?'bg-violet-900/20 border-gray-700':'bg-violet-50 border-gray-200':theme==='dark'?'border-gray-700 hover:bg-gray-700':'border-gray-200 hover:bg-gray-100'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${theme==='dark'?'bg-violet-900/30 text-violet-400':'bg-violet-100 text-violet-600'}`}>{u.ad.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-medium truncate ${theme==='dark'?'text-gray-200':'text-gray-800'}`}>{u.ad}</p>
+                  <p className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>{u.email}</p>
+                </div>
+                <span className={`px-2 py-0.5 rounded text-xs ${rolC[u.rol]}`}>{u.rol}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className={`p-3 border-t ${theme==='dark'?'border-gray-700':'border-gray-200'}`}>
+          <button className="w-full py-2 rounded text-sm font-medium bg-violet-600 text-white hover:bg-violet-500 flex items-center justify-center gap-2"><Icon name="UserPlus" size={14}/>Yeni Kullanıcı</button>
+        </div>
+      </div>
+      <div className={`flex-1 overflow-auto p-4 ${theme==='dark'?'bg-gray-900':'bg-white'}`}>
+        {selUser?(<div className="space-y-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold ${theme==='dark'?'bg-violet-900/30 text-violet-400':'bg-violet-100 text-violet-600'}`}>{selUser.ad.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+              <div>
+                <h2 className={`text-xl font-bold ${theme==='dark'?'text-white':'text-gray-900'}`}>{selUser.ad}</h2>
+                <p className={`text-sm ${theme==='dark'?'text-gray-400':'text-gray-500'}`}>{selUser.email}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`px-2 py-0.5 rounded text-xs ${rolC[selUser.rol]}`}>{selUser.rol}</span>
+                  <span className={`px-2 py-0.5 rounded text-xs ${theme==='dark'?'bg-emerald-900/30 text-emerald-400':'bg-emerald-100 text-emerald-700'}`}>{selUser.durum}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button className={`px-3 py-2 rounded text-sm ${theme==='dark'?'bg-gray-700 text-gray-300 hover:bg-gray-600':'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>Şifre Sıfırla</button>
+              <button className="px-3 py-2 rounded text-sm bg-violet-600 text-white hover:bg-violet-500">Düzenle</button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Ad Soyad</label><input type="text" defaultValue={selUser.ad} className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`}/></div>
+            <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>E-posta</label><input type="email" defaultValue={selUser.email} className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`}/></div>
+            <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Rol</label><select className={`w-full mt-1 px-3 py-2 rounded border text-sm ${inp}`} defaultValue={selUser.rol}><option>Yönetici</option><option>Avukat</option><option>Stajyer</option><option>Sekreter</option></select></div>
+            <div><label className={`text-xs ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Son Giriş</label><input type="text" value={selUser.sonGiris} readOnly className={`w-full mt-1 px-3 py-2 rounded border text-sm ${theme==='dark'?'bg-gray-800 border-gray-700 text-gray-400':'bg-gray-50 border-gray-300 text-gray-500'}`}/></div>
+          </div>
+          <div>
+            <h3 className={`font-semibold mb-3 ${theme==='dark'?'text-white':'text-gray-900'}`}>Yetki Matrisi</h3>
+            <table className="w-full text-sm">
+              <thead><tr className={theme==='dark'?'text-gray-400':'text-gray-500'}>
+                <th className="text-left py-2 w-1/3">Modül</th><th className="text-center py-2">Yönetici</th><th className="text-center py-2">Avukat</th><th className="text-center py-2">Stajyer</th><th className="text-center py-2">Sekreter</th>
+              </tr></thead>
+              <tbody>{yetkiler.map((yg,i)=>(
+                <tr key={i} className={`border-t ${theme==='dark'?'border-gray-700':'border-gray-200'}`}>
+                  <td className={`py-2 ${theme==='dark'?'text-gray-300':'text-gray-700'}`}>{yg.modul}</td>
+                  {['y','a','s','sk'].map(r=><td key={r} className="text-center py-2"><input type="checkbox" defaultChecked={yg[r]} className="rounded"/></td>)}
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </div>):(
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <Icon name="Users" size={48} className={theme==='dark'?'text-gray-700':'text-gray-300'}/>
+              <p className={`mt-4 ${theme==='dark'?'text-gray-500':'text-gray-400'}`}>Detayları görmek için bir kullanıcı seçin</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// MAIN APP
+const AvukatOfisApp=()=>{
+  const[theme,setTheme]=useState('light');
+  const[loggedIn,setLoggedIn]=useState(false);
+  const[user,setUser]=useState(null);
+  const[tabs,setTabs]=useState([{id:'dashboard',label:'Ana Sayfa',icon:'LayoutDashboard',closable:false}]);
+  const[activeTab,setActiveTab]=useState('dashboard');
+  const[selMuv,setSelMuv]=useState(null);
+  const[selDos,setSelDos]=useState(null);
+  const toggleTheme=()=>setTheme(t=>t==='light'?'dark':'light');
+  const openTab=(id,label,icon)=>{
+    if(!tabs.find(t=>t.id===id))setTabs([...tabs,{id,label,icon,closable:true}]);
+    setActiveTab(id);
+  };
+  const closeTab=id=>{
+    if(tabs.find(t=>t.id===id)?.closable===false)return;
+    const nt=tabs.filter(t=>t.id!==id);setTabs(nt);
+    if(activeTab===id)setActiveTab(nt[nt.length-1]?.id||'dashboard');
+  };
+  const handleMenu=action=>{
+    switch(action){
+      case 'dashboard':openTab('dashboard','Ana Sayfa','LayoutDashboard');break;
+      case 'muvekkil-liste':openTab('muvekkil-liste','Müvekkil Listesi','Users');break;
+      case 'dosya-liste':openTab('dosya-liste','Dosya Listesi','FolderOpen');break;
+      case 'gorev-liste':openTab('gorev-liste','Görev Listesi','CheckSquare');break;
+      case 'mali-liste':openTab('mali-liste','Mali Takip','Receipt');break;
+      case 'kullanici-yonetimi':openTab('kullanici-yonetimi','Kullanıcı Yönetimi','Shield');break;
+      case 'logout':setLoggedIn(false);setUser(null);break;
+      default:console.log('Action:',action);
+    }
+  };
+  const openMuv=m=>{setSelMuv(m);openTab('muvekkil-'+m.id,m.ad.substring(0,20),'User')};
+  const openDos=d=>{setSelDos(d);openTab('dosya-'+d.id,d.dosyaNo,'FileText')};
+  useEffect(()=>{
+    const h=e=>{
+      if(!loggedIn)return;
+      if(e.key==='F1'){e.preventDefault();handleMenu('dashboard')}
+      else if(e.key==='F2'){e.preventDefault();handleMenu('muvekkil-liste')}
+      else if(e.key==='F3'){e.preventDefault();handleMenu('dosya-liste')}
+      else if(e.key==='F4'){e.preventDefault();handleMenu('gorev-liste')}
+      else if(e.key==='F5'){e.preventDefault();handleMenu('mali-liste')}
+      else if(e.key==='F9'){e.preventDefault();handleMenu('kullanici-yonetimi')}
+      else if(e.key==='Escape'&&activeTab!=='dashboard')closeTab(activeTab);
+    };
+    window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h);
+  },[activeTab,loggedIn]);
+  if(!loggedIn)return <LoginScreen onLogin={u=>{setUser(u);setLoggedIn(true)}}/>;
+  const render=()=>{
+    if(activeTab==='dashboard')return <DashboardScreen theme={theme} onNavigate={handleMenu}/>;
+    if(activeTab==='muvekkil-liste')return <MuvekkilListeScreen theme={theme} onOpenMuvekkil={openMuv}/>;
+    if(activeTab.startsWith('muvekkil-')&&activeTab!=='muvekkil-liste')return <MuvekkilKartScreen muvekkil={selMuv} theme={theme}/>;
+    if(activeTab==='dosya-liste')return <DosyaListeScreen theme={theme} onOpenDosya={openDos}/>;
+    if(activeTab.startsWith('dosya-')&&activeTab!=='dosya-liste')return <DosyaKartScreen dosya={selDos} theme={theme}/>;
+    if(activeTab==='gorev-liste')return <GorevListeScreen theme={theme}/>;
+    if(activeTab==='mali-liste')return <MaliTakipScreen theme={theme}/>;
+    if(activeTab==='kullanici-yonetimi')return <KullaniciYonetimiScreen theme={theme}/>;
+    return <DashboardScreen theme={theme} onNavigate={handleMenu}/>;
+  };
+  const bg=theme==='dark'?'bg-gray-900 text-white':'bg-white text-gray-900';
+  return(
+    <ThemeContext.Provider value={{theme,toggleTheme}}>
+      <div className={`h-screen flex flex-col ${bg} ${theme}`}>
+        <MenuBar theme={theme} onMenuAction={handleMenu}/>
+        <Toolbar theme={theme} onAction={handleMenu}/>
+        <TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} onTabClose={closeTab} theme={theme}/>
+        <div className="flex-1 flex overflow-hidden">{render()}</div>
+        <StatusBar user={user?.name||'Kullanıcı'} theme={theme} toggleTheme={toggleTheme}/>
+      </div>
+    </ThemeContext.Provider>
+  );
+};
+const root=ReactDOM.createRoot(document.getElementById('root'));
+root.render(<AvukatOfisApp/>);
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<nav class="bg-gray-custom border-b border-[#3c3c3c] shadow-sm relative z-20 hidden md:block">
+    <div class="px-4">
+        <div class="flex items-center space-x-1 py-1 overflow-x-auto custom-scroll">
+            
+            <a href="/dashboard" class="flex items-center gap-2 px-3 py-2 rounded transition-colors whitespace-nowrap {{ current_route == 'dashboard' ? 'bg-gold-custom/10 text-gold-custom border border-gold-custom/20' : 'text-gray-300 hover:bg-[#333] hover:text-white' }}">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                <span class="text-sm font-medium">Dashboard</span>
+            </a>
+
+            <div class="w-px h-5 bg-[#3c3c3c] mx-2"></div>
+
+            <a href="/clients" class="flex items-center gap-2 px-3 py-2 rounded transition-colors whitespace-nowrap {{ current_route == 'clients' ? 'bg-gold-custom/10 text-gold-custom border border-gold-custom/20' : 'text-gray-300 hover:bg-[#333] hover:text-white' }}">
+                <i data-lucide="users" class="w-4 h-4"></i>
+                <span class="text-sm font-medium">Müvekkiller</span>
+            </a>
+
+            <a href="/cases" class="flex items-center gap-2 px-3 py-2 rounded transition-colors whitespace-nowrap {{ current_route == 'cases' ? 'bg-gold-custom/10 text-gold-custom border border-gold-custom/20' : 'text-gray-300 hover:bg-[#333] hover:text-white' }}">
+                <i data-lucide="folder-open" class="w-4 h-4"></i>
+                <span class="text-sm font-medium">Dosyalar & Davalar</span>
+            </a>
+
+            <a href="/hearings" class="flex items-center gap-2 px-3 py-2 rounded transition-colors whitespace-nowrap {{ current_route == 'hearings' ? 'bg-gold-custom/10 text-gold-custom border border-gold-custom/20' : 'text-gray-300 hover:bg-[#333] hover:text-white' }}">
+                <i data-lucide="gavel" class="w-4 h-4"></i>
+                <span class="text-sm font-medium">Duruşma Takvimi</span>
+            </a>
+
+            <div class="w-px h-5 bg-[#3c3c3c] mx-2"></div>
+
+            <a href="/tasks" class="flex items-center gap-2 px-3 py-2 rounded transition-colors whitespace-nowrap {{ current_route == 'tasks' ? 'bg-gold-custom/10 text-gold-custom border border-gold-custom/20' : 'text-gray-300 hover:bg-[#333] hover:text-white' }}">
+                <i data-lucide="check-square" class="w-4 h-4"></i>
+                <span class="text-sm font-medium">İş Listesi</span>
+                <span id="taskBadgeDot" class="w-1.5 h-1.5 rounded-full bg-rose-500 ml-1 hidden"></span>
+            </a>
+
+            <a href="/documents" class="flex items-center gap-2 px-3 py-2 rounded transition-colors whitespace-nowrap {{ current_route == 'documents' ? 'bg-gold-custom/10 text-gold-custom border border-gold-custom/20' : 'text-gray-300 hover:bg-[#333] hover:text-white' }}">
+                <i data-lucide="file-archive" class="w-4 h-4"></i>
+                <span class="text-sm font-medium">Evraklar</span>
+            </a>
+
+            {% if current_user.role in ['Kurucu Ortak', 'Ortak Avukat', 'Muhasebeci', 'Sistem Yöneticisi'] %}
+            <a href="/finance" class="flex items-center gap-2 px-3 py-2 rounded transition-colors whitespace-nowrap {{ current_route == 'finance' ? 'bg-gold-custom/10 text-gold-custom border border-gold-custom/20' : 'text-gray-300 hover:bg-[#333] hover:text-white' }}">
+                <i data-lucide="wallet" class="w-4 h-4"></i>
+                <span class="text-sm font-medium">Mali Takip</span>
+            </a>
+            {% endif %}
+
+            <div class="w-px h-5 bg-[#3c3c3c] mx-2"></div>
+
+            {% if current_user.role in ['Kurucu Ortak', 'Ortak Avukat', 'Sistem Yöneticisi'] %}
+            <a href="/reports" class="flex items-center gap-2 px-3 py-2 rounded transition-colors whitespace-nowrap {{ current_route == 'reports' ? 'bg-gold-custom/10 text-gold-custom border border-gold-custom/20' : 'text-gray-300 hover:bg-[#333] hover:text-white' }}">
+                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                <span class="text-sm font-medium">Raporlar</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.role in ['Kurucu Ortak', 'Sistem Yöneticisi'] %}
+            <a href="/users" class="flex items-center gap-2 px-3 py-2 rounded transition-colors whitespace-nowrap {{ current_route == 'users' ? 'bg-gold-custom/10 text-gold-custom border border-gold-custom/20' : 'text-gray-300 hover:bg-[#333] hover:text-white' }}">
+                <i data-lucide="shield" class="w-4 h-4"></i>
+                <span class="text-sm font-medium">Personel</span>
+            </a>
+            {% endif %}
+
+        </div>
+    </div>
+</nav>

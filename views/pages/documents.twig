@@ -1,0 +1,406 @@
+{% extends 'layouts/app.twig' %}
+
+{% block content %}
+<div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col h-full min-h-[500px]">
+    <!-- Toolbar -->
+    <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div class="flex items-center gap-2">
+            <h3 class="font-semibold text-gray-custom flex items-center gap-2">
+                <i data-lucide="file-archive" class="w-5 h-5 text-gold-custom"></i>
+                Evrak Yönetimi
+            </h3>
+            <span class="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full border border-slate-200 font-medium" id="total-count">0 Kayıt</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <select id="typeFilter" class="border border-slate-300 rounded-md px-3 py-2 text-sm outline-none focus:border-gold-custom" onchange="loadDocuments()">
+                <option value="">Tümü (Evrak Türü)</option>
+            </select>
+            <button onclick="openUploadModal()" class="bg-gray-custom hover:bg-[#333] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 shadow-sm">
+                <i data-lucide="upload" class="w-4 h-4 text-gold-custom"></i> Evrak Yükle
+            </button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="flex-1 overflow-auto custom-scroll relative">
+        <table class="w-full text-sm text-left">
+            <thead class="bg-slate-50 text-slate-500 font-medium sticky top-0 z-10 shadow-sm border-b border-slate-200">
+                <tr>
+                    <th class="px-5 py-3">Evrak</th>
+                    <th class="px-5 py-3">Tür</th>
+                    <th class="px-5 py-3">İlişki</th>
+                    <th class="px-5 py-3">Boyut</th>
+                    <th class="px-5 py-3">Yükleyen</th>
+                    <th class="px-5 py-3">Tarih</th>
+                    <th class="px-5 py-3 text-right">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody id="documentsTableBody" class="divide-y divide-slate-100">
+                <tr><td colspan="7" class="text-center py-8 text-slate-500">Yükleniyor...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="px-5 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0 rounded-b-lg">
+        <span class="text-sm text-slate-500" id="page-info">Sayfa 1 / 1</span>
+        <div class="flex gap-1">
+            <button id="prevPage" onclick="changePage(-1)" class="px-3 py-1 border border-slate-300 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors">Önceki</button>
+            <button id="nextPage" onclick="changePage(1)" class="px-3 py-1 border border-slate-300 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors">Sonraki</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Yükle -->
+<div id="uploadModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-xl flex flex-col max-h-[90vh] transform scale-95 transition-transform duration-300" id="uploadModalContent">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">
+            <h3 class="text-lg font-semibold text-gray-custom flex items-center gap-2">
+                <i data-lucide="upload" class="w-5 h-5 text-gold-custom"></i> Evrak Yükle
+            </h3>
+            <button onclick="closeUploadModal()" class="text-slate-400 hover:text-rose-500 transition-colors p-1 rounded-md hover:bg-rose-50">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto custom-scroll">
+            <div id="modalAlert" class="hidden mb-4 p-3 rounded-md text-sm font-medium"></div>
+
+            <form id="uploadForm" class="space-y-5" enctype="multipart/form-data" onsubmit="event.preventDefault(); uploadDocument();">
+
+                <!-- Drop Zone -->
+                <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:border-gold-custom hover:bg-gold-custom/5 transition-all" onclick="document.getElementById('fileInput').click();" ondragover="event.preventDefault(); this.classList.add('border-gold-custom','bg-gold-custom/5');" ondragleave="this.classList.remove('border-gold-custom','bg-gold-custom/5');" ondrop="event.preventDefault(); this.classList.remove('border-gold-custom','bg-gold-custom/5'); handleFileDrop(event);">
+                    <i data-lucide="cloud-upload" class="w-10 h-10 text-slate-400 mx-auto mb-2"></i>
+                    <p class="text-sm text-slate-600 font-medium" id="dropZoneText">Dosyayı sürükleyip bırakın veya tıklayın</p>
+                    <p class="text-xs text-slate-400 mt-1">PDF, UDF (UYAP), Word, Excel, Resim (Maks. 10 MB)</p>
+                    <input type="file" id="fileInput" class="hidden" accept=".pdf,.udf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.tif,.tiff" onchange="handleFileSelect(this);">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Evrak Başlığı <span class="text-rose-500">*</span></label>
+                    <input type="text" id="doc_title" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Evrak Türü <span class="text-rose-500">*</span></label>
+                    <select id="document_type" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all bg-white">
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">İlgili Müvekkil</label>
+                        <select id="doc_client_id" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all bg-white" onchange="loadCasesForClient()">
+                            <option value="">Seçiniz (Opsiyonel)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">İlgili Dosya</label>
+                        <select id="doc_case_id" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all bg-white disabled:opacity-50" disabled>
+                            <option value="">Önce Müvekkil Seçiniz</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Notlar</label>
+                    <textarea id="doc_notes" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-3 shrink-0 bg-slate-50 rounded-b-lg">
+            <button type="button" onclick="closeUploadModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">İptal</button>
+            <button type="button" onclick="uploadDocument()" id="uploadBtn" class="bg-gold-custom hover:bg-[#b89e6e] text-gray-900 px-6 py-2 rounded-md text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                <i data-lucide="upload" class="w-4 h-4"></i> <span id="uploadBtnText">Yükle</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let currentPage = 1;
+    const limit = 20;
+    let totalPages = 1;
+    let selectedFile = null;
+    let clientsCache = [];
+
+    // --- Dosya Seçimi ---
+    function handleFileSelect(input) {
+        if (input.files && input.files[0]) {
+            selectedFile = input.files[0];
+            updateDropZoneText();
+        }
+    }
+
+    function handleFileDrop(event) {
+        if (event.dataTransfer.files && event.dataTransfer.files[0]) {
+            selectedFile = event.dataTransfer.files[0];
+            document.getElementById('fileInput').files = event.dataTransfer.files;
+            updateDropZoneText();
+        }
+    }
+
+    function updateDropZoneText() {
+        if (!selectedFile) return;
+        const sizeMB = (selectedFile.size / 1048576).toFixed(2);
+        document.getElementById('dropZoneText').textContent = `${selectedFile.name} (${sizeMB} MB)`;
+        document.getElementById('dropZone').classList.add('border-emerald-400', 'bg-emerald-50/50');
+        document.getElementById('dropZone').classList.remove('border-slate-300');
+    }
+
+    // --- Modal ---
+    function openUploadModal() {
+        document.getElementById('uploadForm').reset();
+        document.getElementById('modalAlert').classList.add('hidden');
+        selectedFile = null;
+        document.getElementById('dropZoneText').textContent = 'Dosyayı sürükleyip bırakın veya tıklayın';
+        document.getElementById('dropZone').classList.remove('border-emerald-400', 'bg-emerald-50/50');
+        document.getElementById('dropZone').classList.add('border-slate-300');
+        document.getElementById('doc_case_id').disabled = true;
+        document.getElementById('doc_case_id').innerHTML = '<option value="">Önce Müvekkil Seçiniz</option>';
+
+        lucide.createIcons();
+        openModal('uploadModal', 'uploadModalContent');
+    }
+
+    function closeUploadModal() {
+        closeModal('uploadModal', 'uploadModalContent');
+    }
+
+    function showAlert(msg, isError = true) {
+        const alertEl = document.getElementById('modalAlert');
+        alertEl.textContent = msg;
+        alertEl.className = `mb-4 p-3 rounded-md text-sm font-medium ${isError ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`;
+        alertEl.classList.remove('hidden');
+    }
+
+    // --- Dropdown Yükleme ---
+    async function loadClientsDropdown() {
+        if (clientsCache.length > 0) return;
+        const res = await apiCall('/clients?limit=1000');
+        if (res && res.status === 'success') {
+            clientsCache = res.data;
+            const select = document.getElementById('doc_client_id');
+            select.innerHTML = '<option value="">Seçiniz (Opsiyonel)</option>';
+            clientsCache.forEach(c => {
+                const name = c.client_type === 'Bireysel' ? `${c.first_name} ${c.last_name}` : c.company_name;
+                select.innerHTML += `<option value="${c.id}">${escapeHtml(name)}</option>`;
+            });
+        }
+    }
+
+    async function loadCasesForClient() {
+        const clientId = document.getElementById('doc_client_id').value;
+        const caseSelect = document.getElementById('doc_case_id');
+
+        if (!clientId) {
+            caseSelect.innerHTML = '<option value="">Önce Müvekkil Seçiniz</option>';
+            caseSelect.disabled = true;
+            return;
+        }
+
+        caseSelect.disabled = false;
+        caseSelect.innerHTML = '<option value="">Yükleniyor...</option>';
+
+        const res = await apiCall('/cases?limit=1000');
+        if (res && res.status === 'success') {
+            const clientCases = res.data.filter(c => c.client_id == clientId);
+            caseSelect.innerHTML = '<option value="">Dosya Bağımsız</option>';
+            clientCases.forEach(c => {
+                caseSelect.innerHTML += `<option value="${c.id}">${escapeHtml(c.case_no)}</option>`;
+            });
+        }
+    }
+
+    // --- Dosya boyutu formatı ---
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(2) + ' MB';
+    }
+
+    // --- Dosya ikonu ---
+    function getFileIcon(mimeType) {
+        if (mimeType === 'application/pdf') return 'file-text';
+        if (mimeType.includes('word') || mimeType.includes('document')) return 'file-type';
+        if (mimeType.includes('sheet') || mimeType.includes('excel')) return 'file-spreadsheet';
+        if (mimeType.startsWith('image/')) return 'image';
+        return 'file';
+    }
+
+    // --- API İşlemleri ---
+    async function loadDocuments() {
+        const typeFilter = document.getElementById('typeFilter').value;
+        const tbody = document.getElementById('documentsTableBody');
+
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-500"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Yükleniyor...</td></tr>';
+        lucide.createIcons();
+
+        let query = `?page=${currentPage}&limit=${limit}`;
+
+        const res = await apiCall('/documents' + query);
+
+        if (!res || res.status !== 'success') {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-rose-500">${res?.message || 'Hata oluştu'}</td></tr>`;
+            return;
+        }
+
+        let data = res.data;
+
+        // Client-side type filter
+        if (typeFilter) {
+            data = data.filter(d => d.document_type === typeFilter);
+        }
+
+        document.getElementById('total-count').textContent = `${res.meta.total_records} Kayıt`;
+        document.getElementById('page-info').textContent = `Sayfa ${res.meta.current_page} / ${res.meta.total_pages || 1}`;
+        totalPages = res.meta.total_pages || 1;
+
+        document.getElementById('prevPage').disabled = currentPage <= 1;
+        document.getElementById('nextPage').disabled = currentPage >= totalPages;
+
+        if (data.length === 0) {
+            tbody.innerHTML = emptyStateRow('file-archive', 'Evrak Bulunamadı', 'Henüz evrak yüklenmemiş veya filtrelere uygun sonuç yok.', 'Evrak Yükle', 'openUploadModal()', 7);
+            createLucideIcons(tbody);
+            return;
+        }
+
+        tbody.innerHTML = data.map(d => {
+            const clientName = d.client_type === 'Bireysel'
+                ? `${d.client_first_name || ''} ${d.client_last_name || ''}`.trim()
+                : (d.company_name || '');
+            const uploaderName = `${d.uploader_first_name || ''} ${d.uploader_last_name || ''}`.trim();
+            const fileIcon = getFileIcon(d.mime_type);
+            const dateStr = d.created_at ? d.created_at.split(' ')[0] : '-';
+
+            return `
+                <tr class="hover:bg-slate-50/50 transition-colors group">
+                    <td class="px-5 py-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-gold-custom/10 rounded flex items-center justify-center shrink-0">
+                                <i data-lucide="${fileIcon}" class="w-4 h-4 text-gold-custom"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-medium text-slate-800 truncate max-w-[200px]" title="${escapeHtml(d.title)}">${escapeHtml(d.title)}</div>
+                                <div class="text-[10px] text-slate-400 truncate max-w-[200px]" title="${escapeHtml(d.original_filename)}">${escapeHtml(d.original_filename)}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-5 py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">${escapeHtml(d.document_type)}</span>
+                    </td>
+                    <td class="px-5 py-3">
+                        <div class="text-sm text-slate-700">${escapeHtml(clientName) || '-'}</div>
+                        <div class="text-xs text-slate-500">${d.case_no ? 'Dosya: ' + escapeHtml(d.case_no) : ''}</div>
+                    </td>
+                    <td class="px-5 py-3 text-slate-600 text-xs">${formatFileSize(d.file_size)}</td>
+                    <td class="px-5 py-3 text-slate-600 text-xs">${escapeHtml(uploaderName)}</td>
+                    <td class="px-5 py-3 text-slate-600 text-xs">${dateStr}</td>
+                    <td class="px-5 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <a href="/api/v1/documents/${d.id}/download" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="İndir" target="_blank">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                            </a>
+                            <button onclick="deleteDocument(${d.id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors" title="Sil">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        lucide.createIcons();
+    }
+
+    function changePage(delta) {
+        const newPage = currentPage + delta;
+        if (newPage >= 1 && newPage <= totalPages) {
+            currentPage = newPage;
+            loadDocuments();
+        }
+    }
+
+    async function uploadDocument() {
+        if (!selectedFile) return showAlert('Lütfen bir dosya seçiniz.');
+
+        const title = document.getElementById('doc_title').value;
+        const docType = document.getElementById('document_type').value;
+
+        if (!title) return showAlert('Evrak başlığı zorunludur.');
+        if (!docType) return showAlert('Evrak türü seçiniz.');
+
+        const btn = document.getElementById('uploadBtn');
+        const btnText = document.getElementById('uploadBtnText');
+        btn.disabled = true;
+        btnText.textContent = 'Yükleniyor...';
+        document.getElementById('modalAlert').classList.add('hidden');
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('title', title);
+        formData.append('document_type', docType);
+
+        const clientId = document.getElementById('doc_client_id').value;
+        const caseId = document.getElementById('doc_case_id').value;
+        if (clientId) formData.append('client_id', clientId);
+        if (caseId) formData.append('case_id', caseId);
+
+        const notes = document.getElementById('doc_notes').value;
+        if (notes) formData.append('notes', notes);
+
+        try {
+            const resp = await fetch('/api/v1/documents', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+            const res = await resp.json();
+
+            btn.disabled = false;
+            btnText.textContent = 'Yükle';
+
+            if (!res || res.status !== 'success') {
+                showAlert(res?.message || 'Yükleme başarısız.', true);
+            } else {
+                showAlert('Evrak başarıyla yüklendi.', false);
+                setTimeout(() => {
+                    closeUploadModal();
+                    loadDocuments();
+                }, 1000);
+            }
+        } catch (e) {
+            btn.disabled = false;
+            btnText.textContent = 'Yükle';
+            showAlert('Bağlantı hatası. Lütfen tekrar deneyiniz.', true);
+        }
+    }
+
+    async function deleteDocument(id) {
+        const confirmed = await showConfirm(
+            'Evrakı Sil',
+            'Bu evrakı silmek istediğinize emin misiniz?',
+            'Evet, Sil'
+        );
+        if (!confirmed) return;
+
+        const res = await apiCall(`/documents/${id}`, 'DELETE');
+        if (!res || res.status !== 'success') {
+            showToast('Hata: ' + (res?.message || 'Silinemedi.'), 'error');
+        } else {
+            loadDocuments();
+        }
+    }
+
+    // İlk yükleme
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadClientsDropdown();
+        await populateSelect('document_type', 'document_types', null, 'Seçiniz...');
+        await populateFilterSelect('typeFilter', 'document_types', 'Tümü (Evrak Türü)');
+        loadDocuments();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} - {{ app_settings.app_name | default('Avukat Ofis Yönetim Sistemi') }}</title>
+    <link rel="icon" type="image/png" href="/assets/proomist-favicon-01.png">
+
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'gold-custom': '#cfb481',
+                        'gray-custom': '#282828',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Global CSS -->
+    <link rel="stylesheet" href="/assets/css/app.css">
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="h-screen flex flex-col antialiased selection:bg-gold-custom/20 selection:text-gray-900">
+
+    <!-- Top Header (Uygulama Başlığı ve Sağ Menü) -->
+    <header class="h-12 bg-gray-custom text-white flex items-center justify-between px-4 shrink-0 shadow-md z-30 relative border-b border-[#3c3c3c]">
+        <div class="flex items-center gap-3">
+            <!-- Hamburger Menü Butonu (Mobil) -->
+            <button onclick="toggleMobileMenu()" class="md:hidden p-1.5 rounded-md hover:bg-[#333] transition-colors" aria-label="Menüyü Aç">
+                <i data-lucide="menu" class="w-5 h-5 text-gray-300"></i>
+            </button>
+
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded bg-gold-custom/20 flex items-center justify-center border border-gold-custom/30">
+                    <i data-lucide="scale" class="w-5 h-5 text-gold-custom"></i>
+                </div>
+                <span class="font-semibold tracking-wide text-white">Proomist LEX</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-4">
+            <!-- Hızlı İşlem (Yeni) Butonu -->
+            <div class="relative group" id="quickActionContainer">
+                <button onclick="toggleQuickActionMenu()" id="quickActionBtn" class="hidden md:flex items-center gap-2 bg-gold-custom hover:bg-[#b89e6e] text-gray-900 px-3 py-1.5 rounded-md font-medium transition-colors shadow-sm focus:outline-none">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span class="text-sm">Yeni Kayıt</span>
+                </button>
+                
+                <!-- Hızlı İşlem Dropdown -->
+                <div id="quickActionDropdown" class="absolute left-0 top-full mt-1 w-48 bg-white rounded-md shadow-xl border border-slate-200 py-1 hidden z-50">
+                    <a href="/clients?action=new" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                        <i data-lucide="user-plus" class="w-4 h-4 text-slate-400"></i> Yeni Müvekkil
+                    </a>
+                    <a href="/cases?action=new" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                        <i data-lucide="folder-plus" class="w-4 h-4 text-slate-400"></i> Yeni Dosya / Dava
+                    </a>
+                    <a href="/hearings?action=new" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                        <i data-lucide="calendar-plus" class="w-4 h-4 text-slate-400"></i> Yeni Duruşma
+                    </a>
+                    <a href="/tasks?action=new" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                        <i data-lucide="check-square" class="w-4 h-4 text-slate-400"></i> Yeni Görev
+                    </a>
+                    <div class="border-t border-slate-100 my-1"></div>
+                    <a href="/finance?action=new" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                        <i data-lucide="receipt" class="w-4 h-4 text-slate-400"></i> Mali Kayıt
+                    </a>
+                </div>
+            </div>
+
+            <!-- Hızlı Arama -->
+            <div class="hidden lg:flex items-center gap-2 bg-[#333] px-3 py-1.5 rounded-md border border-[#444] focus-within:border-gold-custom focus-within:bg-[#3a3a3a] transition-all relative" id="globalSearchContainer">
+                <i data-lucide="search" class="w-4 h-4 text-gray-400"></i>
+                <input type="text" id="globalSearchInput" placeholder="Hızlı Arama (Ctrl+K)" class="bg-transparent border-none outline-none text-sm w-48 text-white placeholder-gray-500" autocomplete="off">
+                <!-- Arama Sonuçları Dropdown -->
+                <div id="searchResultsDropdown" class="absolute left-0 top-full mt-2 w-80 bg-white rounded-lg shadow-xl border border-slate-200 hidden z-50 max-h-80 overflow-y-auto">
+                    <div id="searchResultsList" class="py-1"></div>
+                    <div id="searchEmptyState" class="hidden p-4 text-center text-sm text-slate-400">Sonuç bulunamadı</div>
+                    <div id="searchLoadingState" class="hidden p-4 text-center text-sm text-slate-400">Aranıyor...</div>
+                </div>
+            </div>
+
+            <div class="w-px h-5 bg-[#444] mx-1"></div>
+
+            <!-- Bildirimler -->
+            <div class="relative" id="notificationContainer">
+                <button id="notificationBtn" class="relative p-1.5 rounded-md hover:bg-[#333] transition-colors">
+                    <i data-lucide="bell" class="w-5 h-5 text-gray-300"></i>
+                    <span id="notificationBadge" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 border border-gray-custom hidden"></span>
+                </button>
+                <!-- Bildirim Dropdown -->
+                <div id="notificationDropdown" class="absolute right-0 top-full mt-1 w-80 bg-white rounded-lg shadow-xl border border-slate-200 hidden z-50">
+                    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                        <span class="text-sm font-semibold text-slate-800">Bildirimler</span>
+                        <span id="notificationCount" class="text-xs text-slate-400"></span>
+                    </div>
+                    <div id="notificationList" class="max-h-72 overflow-y-auto">
+                        <div class="p-4 text-center text-sm text-slate-400" id="notificationEmpty">Bildirim bulunmuyor</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profil Dropdown -->
+            <div class="relative group ml-1" id="profileDropdownContainer">
+                <button onclick="toggleProfileMenu()" class="flex items-center gap-2 p-1 rounded-md hover:bg-[#333] transition-colors focus:outline-none">
+                    <div class="w-7 h-7 rounded-full bg-[#1a1a1a] flex items-center justify-center text-sm font-semibold border border-[#444] text-gold-custom" id="header-initials">
+                        --
+                    </div>
+                    <div class="hidden sm:flex flex-col items-start leading-none text-left">
+                        <span class="text-xs font-medium text-gray-200" id="header-name">Kullanıcı</span>
+                        <span class="text-[10px] text-gray-400" id="header-role">Yetkili</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+                </button>
+                
+                <!-- Dropdown Menü -->
+                <div id="profileMenu" class="absolute right-0 top-full mt-1 w-52 bg-white rounded-md shadow-xl border border-slate-200 py-1 hidden z-50">
+                    <a href="/guide" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                        <i data-lucide="book-open" class="w-4 h-4 text-slate-400"></i> Kullanım Rehberi
+                    </a>
+                    <div class="border-t border-slate-100 my-1"></div>
+                    {% if current_user.role in ['Kurucu Ortak', 'Sistem Yöneticisi'] %}
+                    <a href="/system-definitions" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                        <i data-lucide="list-ordered" class="w-4 h-4 text-slate-400"></i> Tanımlamalar
+                    </a>
+                    <a href="/settings" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                        <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i> Sistem Ayarları
+                    </a>
+                    {% endif %}
+                    {% if current_user.role == 'Sistem Yöneticisi' %}
+                    <a href="/activity-logs" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                        <i data-lucide="file-text" class="w-4 h-4 text-slate-400"></i> İşlem Logları
+                    </a>
+                    <a href="/error-logs" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                        <i data-lucide="alert-triangle" class="w-4 h-4 text-slate-400"></i> Hata İzleme
+                    </a>
+                    {% endif %}
+                    <div class="border-t border-slate-100 my-1"></div>
+                    <a href="#" onclick="doLogout()" class="flex items-center gap-2 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 font-medium transition-colors">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> Güvenli Çıkış
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Yatay Navbar (Header Menü - Desktop) -->
+    {% include 'partials/navbar.twig' %}
+
+    <!-- Mobil Drawer Menü Overlay -->
+    <div id="mobileMenuOverlay" class="mobile-menu-overlay" onclick="closeMobileMenu()"></div>
+
+    <!-- Mobil Drawer Menü -->
+    <nav id="mobileMenuDrawer" class="mobile-menu-drawer">
+        <div class="menu-header">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded bg-gold-custom/20 flex items-center justify-center border border-gold-custom/30">
+                    <i data-lucide="scale" class="w-5 h-5 text-gold-custom"></i>
+                </div>
+                <span class="font-semibold tracking-wide text-white text-sm">Proomist Hukuk</span>
+            </div>
+            <button onclick="closeMobileMenu()" class="p-1.5 rounded-md hover:bg-[#333] transition-colors text-gray-400 hover:text-white">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="menu-links">
+            <a href="/dashboard" class="{{ current_route == 'dashboard' ? 'active' : '' }}">
+                <i data-lucide="layout-dashboard"></i> Dashboard
+            </a>
+            <div class="menu-divider"></div>
+            <a href="/clients" class="{{ current_route == 'clients' ? 'active' : '' }}">
+                <i data-lucide="users"></i> Müvekkiller
+            </a>
+            <a href="/cases" class="{{ current_route == 'cases' ? 'active' : '' }}">
+                <i data-lucide="folder-open"></i> Dosyalar & Davalar
+            </a>
+            <a href="/hearings" class="{{ current_route == 'hearings' ? 'active' : '' }}">
+                <i data-lucide="gavel"></i> Duruşma Takvimi
+            </a>
+            <div class="menu-divider"></div>
+            <a href="/tasks" class="{{ current_route == 'tasks' ? 'active' : '' }}">
+                <i data-lucide="check-square"></i> İş Listesi
+            </a>
+            <a href="/finance" class="{{ current_route == 'finance' ? 'active' : '' }}">
+                <i data-lucide="wallet"></i> Mali Takip
+            </a>
+            <div class="menu-divider"></div>
+            <a href="/reports" class="{{ current_route == 'reports' ? 'active' : '' }}">
+                <i data-lucide="bar-chart-3"></i> Raporlar
+            </a>
+            <a href="/users" class="{{ current_route == 'users' ? 'active' : '' }}">
+                <i data-lucide="shield"></i> Personel
+            </a>
+            <div class="menu-divider"></div>
+            <a href="/system-definitions" class="{{ current_route == 'system-definitions' ? 'active' : '' }}">
+                <i data-lucide="list-ordered"></i> Tanımlamalar
+            </a>
+            <a href="/settings" class="{{ current_route == 'settings' ? 'active' : '' }}">
+                <i data-lucide="settings"></i> Sistem Ayarları
+            </a>
+            <a href="/activity-logs" class="{{ current_route == 'activity-logs' ? 'active' : '' }}">
+                <i data-lucide="file-text"></i> İşlem Logları
+            </a>
+            <a href="/error-logs" class="{{ current_route == 'error-logs' ? 'active' : '' }}">
+                <i data-lucide="alert-triangle"></i> Hata İzleme
+            </a>
+            <div class="menu-divider"></div>
+            <a href="/guide" class="{{ current_route == 'guide' ? 'active' : '' }}">
+                <i data-lucide="book-open"></i> Kullanım Rehberi
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Layout (İçerik Alanı) -->
+    <main class="flex-1 flex flex-col min-w-0 bg-slate-50 relative overflow-hidden">
+        <!-- Breadcrumb / Tab Bar (Opsiyonel Masaüstü Hissi) -->
+        <div class="h-10 bg-white border-b border-slate-200 flex items-center px-4 shrink-0 shadow-sm">
+            {% block breadcrumb %}
+            <div class="flex items-center gap-2 text-sm text-slate-500">
+                <i data-lucide="home" class="w-4 h-4"></i>
+                <span>/</span>
+                <span class="font-medium text-slate-800">{{ page_title }}</span>
+            </div>
+            {% endblock %}
+        </div>
+
+        <!-- Page Content Scrollable Area -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-[#f4f4f5]">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Hukuki Durum Çubuğu (Bottom Status Bar) -->
+    <footer class="h-7 bg-[#282828] border-t border-[#3c3c3c] flex items-center justify-between px-3 shrink-0 text-[11px] text-gray-400 font-medium z-20 select-none">
+        <div class="flex items-center gap-4">
+            <span class="flex items-center gap-1" title="Güvenli Bağlantı"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-500"></i> AES-256</span>
+            <span class="hidden sm:inline text-[#555]">|</span>
+            <span class="hidden sm:flex items-center gap-1 text-emerald-500/80">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Çevrimiçi
+            </span>
+            <span class="hidden sm:inline text-[#555]">|</span>
+            <span class="hidden md:flex items-center gap-1" title="IP Adresi">
+                <i data-lucide="globe" class="w-3 h-3 text-gold-custom"></i> <span id="user-ip">Yükleniyor...</span>
+            </span>
+            <span class="hidden sm:inline text-[#555]">|</span>
+            <span class="flex items-center gap-1" title="Aktif Kullanıcı">
+                <i data-lucide="user" class="w-3 h-3 text-gold-custom"></i> 
+                <span id="footer-user-name" class="text-gray-300">Yükleniyor...</span> 
+                <span id="footer-user-role" class="text-gold-custom/70 ml-1">(-)</span>
+            </span>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-3">
+            <span class="hidden sm:flex items-center gap-1 bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#333] text-gray-300">
+                <i data-lucide="calendar" class="w-3 h-3 text-gold-custom"></i> <span id="current-date"></span>
+            </span>
+            <span class="flex items-center gap-1 bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#333] text-gold-custom">
+                <i data-lucide="clock" class="w-3 h-3"></i> <span id="current-time"></span>
+            </span>
+        </div>
+    </footer>
+
+    <!-- Global Dialog Modal -->
+    <div id="globalDialogModal" class="fixed inset-0 bg-black/60 z-[100] hidden items-center justify-center opacity-0 transition-opacity duration-200 backdrop-blur-sm">
+        <div id="globalDialogContent" class="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200 m-4">
+            <div class="p-6">
+                <div id="globalDialogIconContainer" class="flex items-center justify-center w-12 h-12 rounded-full mb-4 mx-auto">
+                    <!-- Icon injected by JS -->
+                </div>
+                <h3 id="globalDialogTitle" class="text-lg font-bold text-center text-gray-900 mb-2"></h3>
+                <p id="globalDialogMessage" class="text-sm text-center text-slate-500 mb-6"></p>
+                
+                <div class="flex gap-3 justify-center" id="globalDialogButtons">
+                    <button id="globalDialogCancelBtn" class="hidden px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-md font-medium text-sm transition-colors w-full">
+                        İptal
+                    </button>
+                    <button id="globalDialogOkBtn" class="px-4 py-2 text-white rounded-md font-medium text-sm transition-colors w-full flex justify-center items-center gap-2">
+                        <span>Tamam</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Scripts (Sıra önemli: api → utils → app) -->
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/utils.js"></script>
+    <script src="/assets/js/app.js"></script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,474 @@
+{% extends 'layouts/app.twig' %}
+
+{% block content %}
+<div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col h-full min-h-[500px]">
+    <!-- Toolbar -->
+    <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div class="flex items-center gap-2">
+            <h3 class="font-semibold text-gray-custom flex items-center gap-2">
+                <i data-lucide="folder-open" class="w-5 h-5 text-gold-custom"></i>
+                Dosyalar ve Davalar
+            </h3>
+            <span class="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full border border-slate-200 font-medium" id="total-count">0 Kayıt</span>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="searchInput" placeholder="Föy, Dosya, Mahkeme, Konu, Taraf..." class="pl-9 pr-4 py-2 border border-slate-300 rounded-md text-sm focus:border-gold-custom focus:ring-1 focus:ring-gold-custom outline-none w-64 transition-all" onkeyup="if(event.key === 'Enter') loadCases()">
+            </div>
+            <select id="statusFilter" class="border border-slate-300 rounded-md px-3 py-2 text-sm outline-none focus:border-gold-custom" onchange="loadCases()">
+                <option value="">Tümü (Durum)</option>
+                <option value="Aktif">Aktif</option>
+                <option value="Karar Aşaması">Karar Aşaması</option>
+                <option value="İstinaf/Yargıtay">İstinaf/Yargıtay</option>
+                <option value="Sonuçlandı">Sonuçlandı</option>
+                <option value="Arşiv">Arşiv</option>
+            </select>
+            <select id="typeFilter" class="border border-slate-300 rounded-md px-3 py-2 text-sm outline-none focus:border-gold-custom" onchange="loadCases()">
+                <option value="">Tümü (Tür)</option>
+            </select>
+            <button onclick="openCaseModal()" class="bg-gray-custom hover:bg-[#333] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 shadow-sm">
+                <i data-lucide="plus" class="w-4 h-4 text-gold-custom"></i> Yeni Dosya
+            </button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="flex-1 overflow-auto custom-scroll relative">
+        <table class="w-full text-sm text-left">
+            <thead class="bg-slate-50 text-slate-500 font-medium sticky top-0 z-10 shadow-sm border-b border-slate-200">
+                <tr>
+                    <th class="px-5 py-3">Föy No</th>
+                    <th class="px-5 py-3">Taraflar</th>
+                    <th class="px-5 py-3">Mahkeme / Merci</th>
+                    <th class="px-5 py-3">Tür / Konu</th>
+                    <th class="px-5 py-3">Durum</th>
+                    <th class="px-5 py-3 text-right">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody id="casesTableBody" class="divide-y divide-slate-100">
+                <tr><td colspan="6" class="text-center py-8 text-slate-500">Yükleniyor...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="px-5 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0 rounded-b-lg">
+        <span class="text-sm text-slate-500" id="page-info">Sayfa 1 / 1</span>
+        <div class="flex gap-1">
+            <button id="prevPage" onclick="changePage(-1)" class="px-3 py-1 border border-slate-300 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors">Önceki</button>
+            <button id="nextPage" onclick="changePage(1)" class="px-3 py-1 border border-slate-300 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors">Sonraki</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Yeni/Düzenle -->
+<div id="caseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh] transform scale-95 transition-transform duration-300" id="caseModalContent">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">
+            <h3 class="text-lg font-semibold text-gray-custom flex items-center gap-2" id="modalTitle">
+                <i data-lucide="folder-plus" class="w-5 h-5 text-gold-custom"></i> Yeni Dosya Ekle
+            </h3>
+            <button onclick="closeCaseModal()" class="text-slate-400 hover:text-rose-500 transition-colors p-1 rounded-md hover:bg-rose-50">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto custom-scroll">
+            <div id="modalAlert" class="hidden mb-4 p-3 rounded-md text-sm font-medium"></div>
+
+            <form id="caseForm" class="space-y-5">
+                <input type="hidden" id="case_id">
+                
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-5">
+                    
+                    <!-- Genel Bilgiler -->
+                    <div class="col-span-2 md:col-span-3 pb-2 border-b border-slate-100">
+                        <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Genel Bilgiler</h4>
+                    </div>
+
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Müvekkil <span class="text-rose-500">*</span></label>
+                        <select id="client_id" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all bg-white">
+                            <option value="">Seçiniz...</option>
+                            <!-- JS ile doldurulacak -->
+                        </select>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Müvekkil Konumu</label>
+                        <select id="client_role" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all bg-white">
+                        </select>
+                    </div>
+
+                    <div class="col-span-1 md:col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Föy No</label>
+                        <input type="text" id="folder_no" placeholder="Örn: 2026/1A" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+
+                    <div class="col-span-1 md:col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Dosya / Sistem No (İsteğe Bağlı)</label>
+                        <input type="text" id="case_no" placeholder="Örn: OFİS-2024-001" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Tür <span class="text-rose-500">*</span></label>
+                        <select id="case_type" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all bg-white">
+                        </select>
+                    </div>
+
+                    <!-- Dava ve Taraf Bilgileri -->
+                    <div class="col-span-2 md:col-span-3 pt-2 pb-2 border-b border-slate-100 mt-2">
+                        <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Dava/Takip Detayları</h4>
+                    </div>
+
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Mahkeme / İcra Dairesi vb.</label>
+                        <input type="text" id="court_name" placeholder="Örn: İstanbul 1. Asliye Ticaret Mahkemesi" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Esas / Takip No</label>
+                        <input type="text" id="base_no" placeholder="Örn: 2024/123 Esas" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Konu <span class="text-rose-500">*</span></label>
+                        <input type="text" id="subject" placeholder="Örn: İtirazın İptali, Boşanma, Kira Tespit..." class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Açılış Tarihi</label>
+                        <input type="date" id="open_date" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+
+                    <div class="col-span-1 md:col-span-3">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Karşı Taraf (Ad Soyad / Ünvan)</label>
+                        <input type="text" id="opponent_name" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+
+                    <div class="col-span-1 md:col-span-3">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Karşı Taraf Vekili</label>
+                        <input type="text" id="opponent_lawyer" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+                    
+                    <div class="col-span-1 md:col-span-3">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Açıklama / Notlar</label>
+                        <textarea id="description" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all"></textarea>
+                    </div>
+
+                    <div class="col-span-1 md:col-span-3">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Durum</label>
+                        <select id="status" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all bg-white">
+                            <option value="Aktif">Aktif</option>
+                            <option value="Karar Aşaması">Karar Aşaması</option>
+                            <option value="İstinaf/Yargıtay">İstinaf/Yargıtay</option>
+                            <option value="Sonuçlandı">Sonuçlandı</option>
+                            <option value="Arşiv">Arşiv (Kapatıldı)</option>
+                        </select>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-3 shrink-0 bg-slate-50 rounded-b-lg">
+            <button type="button" onclick="closeCaseModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">İptal</button>
+            <button type="button" onclick="saveCase()" id="saveBtn" class="bg-gold-custom hover:bg-[#b89e6e] text-gray-900 px-6 py-2 rounded-md text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                <i data-lucide="save" class="w-4 h-4"></i> <span id="saveBtnText">Kaydet</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let currentPage = 1;
+    const limit = 15;
+    let totalPages = 1;
+    let clientsCache = [];
+
+    // API İstek Aracı artık /assets/js/api.js dosyasından yükleniyor.
+
+    // Modal UI Yönetimi
+    function openCaseModal(id = null) {
+        document.getElementById('caseForm').reset();
+        document.getElementById('case_id').value = '';
+        document.getElementById('modalTitle').innerHTML = '<i data-lucide="folder-plus" class="w-5 h-5 text-gold-custom"></i> Yeni Dosya Ekle';
+        document.getElementById('modalAlert').classList.add('hidden');
+        lucide.createIcons();
+
+        // Tarih default bugün olsun
+        document.getElementById('open_date').value = new Date().toISOString().split('T')[0];
+
+        if (id) {
+            document.getElementById('modalTitle').innerHTML = '<i data-lucide="edit" class="w-5 h-5 text-gold-custom"></i> Dosya Düzenle';
+            loadCaseDetails(id);
+        }
+
+        const modal = document.getElementById('caseModal');
+        const content = document.getElementById('caseModalContent');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeCaseModal() {
+        const modal = document.getElementById('caseModal');
+        const content = document.getElementById('caseModalContent');
+        modal.classList.add('opacity-0');
+        content.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 300);
+    }
+
+    function showAlert(msg, isError = true) {
+        const alertEl = document.getElementById('modalAlert');
+        alertEl.textContent = msg;
+        alertEl.className = `mb-4 p-3 rounded-md text-sm font-medium ${isError ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`;
+        alertEl.classList.remove('hidden');
+    }
+
+    // Müvekkilleri Dropdown için Yükle (Modal açılışında hız kazandırır)
+    async function loadClientsForDropdown() {
+        if (clientsCache.length > 0) return; // Zaten yüklüyse tekrar çekme
+        
+        const res = await apiCall('/clients?limit=1000'); // Sınırsız veya yeterince büyük
+        if (res && res.status === 'success') {
+            clientsCache = res.data;
+            const select = document.getElementById('client_id');
+            select.innerHTML = '<option value="">Seçiniz...</option>';
+            
+            clientsCache.forEach(c => {
+                const name = c.client_type === 'Bireysel' ? `${c.first_name} ${c.last_name}` : c.company_name;
+                select.innerHTML += `<option value="${c.id}">${escapeHtml(name)} (${escapeHtml(c.client_type)})</option>`;
+            });
+        }
+    }
+
+    // --- API İşlemleri ---
+
+    async function loadCases() {
+        const search = document.getElementById('searchInput').value;
+        const status = document.getElementById('statusFilter').value;
+        const type = document.getElementById('typeFilter').value;
+        const tbody = document.getElementById('casesTableBody');
+        
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-500"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Yükleniyor...</td></tr>';
+        lucide.createIcons();
+
+        let query = `?page=${currentPage}&limit=${limit}`;
+        if(status) query += `&status=${encodeURIComponent(status)}`;
+        if(type) query += `&type=${encodeURIComponent(type)}`;
+        
+        const res = await apiCall('/cases' + query);
+        
+        if (!res || res.status !== 'success') {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-rose-500">${res?.message || 'Hata oluştu'}</td></tr>`;
+            return;
+        }
+
+        let data = res.data;
+        document.getElementById('total-count').textContent = `${res.meta.total_records} Kayıt`;
+        document.getElementById('page-info').textContent = `Sayfa ${res.meta.current_page} / ${res.meta.total_pages || 1}`;
+        totalPages = res.meta.total_pages || 1;
+        
+        document.getElementById('prevPage').disabled = currentPage <= 1;
+        document.getElementById('nextPage').disabled = currentPage >= totalPages;
+
+        if (data.length === 0) {
+            tbody.innerHTML = emptyStateRow('folder-open', 'Dosya Bulunamadı', 'Henüz dosya/dava kaydı oluşturulmamış veya filtrelere uygun sonuç yok.', 'Yeni Dosya Ekle', 'openCaseModal()', 6);
+            createLucideIcons(tbody);
+            return;
+        }
+
+        // JS Filtreleme (Arama ve Tip için)
+        if (search || type) {
+            data = data.filter(c => {
+                const matchStr = `${c.folder_no} ${c.case_no} ${c.base_no} ${c.subject} ${c.opponent_name} ${c.court_name} ${c.client_first_name} ${c.client_last_name} ${c.client_company_name}`.toLowerCase();
+                const searchMatch = !search || matchStr.includes(search.toLowerCase());
+                const typeMatch = !type || c.case_type === type;
+                return searchMatch && typeMatch;
+            });
+        }
+
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-500">Aramaya uygun kayıt bulunamadı.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.map(c => {
+            const clientName = c.client_type === 'Bireysel' ? `${c.client_first_name || ''} ${c.client_last_name || ''}` : (c.client_company_name || '');
+            const court = c.court_name || '-';
+            const baseNo = c.base_no || '-';
+            const _esc = escapeHtml;
+            
+            // Durum Renklendirmesi
+            let statusColor = 'bg-slate-100 text-slate-600 border-slate-200';
+            if (c.status === 'Aktif') statusColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            else if (c.status === 'Sonuçlandı') statusColor = 'bg-blue-50 text-blue-700 border-blue-200';
+            else if (c.status === 'Arşiv') statusColor = 'bg-gray-100 text-gray-500 border-gray-200';
+            else if (c.status === 'Karar Aşaması') statusColor = 'bg-amber-50 text-amber-700 border-amber-200';
+            else if (c.status === 'İstinaf/Yargıtay') statusColor = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+
+            return `
+                <tr class="hover:bg-slate-50/50 transition-colors group">
+                    <td class="px-5 py-3">
+                        <div class="font-medium text-slate-800">${_esc(c.folder_no || '-')}</div>
+                        <div class="text-xs text-slate-500 font-mono mt-0.5">${_esc(c.case_no || '-')} / ${_esc(baseNo)}</div>
+                    </td>
+                    <td class="px-5 py-3">
+                        <div class="text-sm text-slate-800"><span class="text-slate-400">M:</span> ${_esc(clientName)}</div>
+                        <div class="text-sm text-slate-600 truncate max-w-[200px]" title="${_esc(c.opponent_name || '-')}"><span class="text-slate-400">K:</span> ${_esc(c.opponent_name || '-')}</div>
+                    </td>
+                    <td class="px-5 py-3 text-slate-600 text-sm truncate max-w-[200px]" title="${_esc(court)}">${_esc(court)}</td>
+                    <td class="px-5 py-3">
+                        <div class="text-sm font-medium text-gray-custom">${_esc(c.subject)}</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">${_esc(c.case_type)}</div>
+                    </td>
+                    <td class="px-5 py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${statusColor}">
+                            ${c.status}
+                        </span>
+                    </td>
+                    <td class="px-5 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <a href="/cases/${c.id}/finance" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="Mali Akış & Dağıtım">
+                                <i data-lucide="calculator" class="w-4 h-4"></i>
+                            </a>
+                            <button onclick="openCaseModal(${c.id})" class="p-1.5 text-slate-400 hover:text-gold-custom hover:bg-gold-custom/10 rounded transition-colors" title="Düzenle">
+                                <i data-lucide="edit" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteCase(${c.id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors" title="Sil">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+        lucide.createIcons();
+    }
+
+    function changePage(delta) {
+        const newPage = currentPage + delta;
+        if (newPage >= 1 && newPage <= totalPages) {
+            currentPage = newPage;
+            loadCases();
+        }
+    }
+
+    async function loadCaseDetails(id) {
+        const res = await apiCall(`/cases/${id}`);
+        if (!res || res.status !== 'success') {
+            showAlert('Dosya bilgileri alınamadı.');
+            return;
+        }
+
+        const c = res.data;
+        document.getElementById('case_id').value = c.id;
+        document.getElementById('client_id').value = c.client_id;
+        await populateSelect('client_role', 'client_positions', c.client_role || c.client_position);
+        document.getElementById('folder_no').value = c.folder_no || '';
+        document.getElementById('case_no').value = c.case_no || '';
+        await populateSelect('case_type', 'case_types', c.case_type);
+        document.getElementById('court_name').value = c.court_name || '';
+        document.getElementById('base_no').value = c.base_no || '';
+        document.getElementById('subject').value = c.subject || '';
+        
+        if (c.open_date) {
+            document.getElementById('open_date').value = c.open_date.substring(0, 10);
+        }
+        
+        document.getElementById('opponent_name').value = c.opponent_name || '';
+        document.getElementById('opponent_lawyer').value = c.opponent_lawyer || '';
+        document.getElementById('description').value = c.description || '';
+        document.getElementById('status').value = c.status || 'Aktif';
+    }
+
+    async function saveCase() {
+        const id = document.getElementById('case_id').value;
+        const btn = document.getElementById('saveBtn');
+        const btnText = document.getElementById('saveBtnText');
+
+        const clientId = document.getElementById('client_id').value;
+        const subject = document.getElementById('subject').value;
+        const caseType = document.getElementById('case_type').value;
+
+        if (!clientId) return showAlert('Lütfen bir müvekkil seçiniz.');
+        if (!subject) return showAlert('Dosya/Dava konusu zorunludur.');
+        if (!caseType) return showAlert('Dosya türü zorunludur.');
+
+        const payload = {
+            client_id: parseInt(clientId),
+            client_position: document.getElementById('client_role').value,
+            lawyer_id: {{ current_user.user_id }},
+            folder_no: document.getElementById('folder_no').value,
+            case_no: document.getElementById('case_no').value,
+            case_type: caseType,
+            court_name: document.getElementById('court_name').value,
+            base_no: document.getElementById('base_no').value,
+            subject: subject,
+            open_date: document.getElementById('open_date').value,
+            opponent_name: document.getElementById('opponent_name').value,
+            opponent_lawyer: document.getElementById('opponent_lawyer').value,
+            description: document.getElementById('description').value,
+            status: document.getElementById('status').value,
+        };
+
+        btn.disabled = true;
+        btnText.textContent = 'Kaydediliyor...';
+        document.getElementById('modalAlert').classList.add('hidden');
+
+        const endpoint = id ? `/cases/${id}` : '/cases';
+        const method = id ? 'PUT' : 'POST';
+
+        const res = await apiCall(endpoint, method, payload);
+        
+        btn.disabled = false;
+        btnText.textContent = 'Kaydet';
+
+        if (!res || res.status !== 'success') {
+            showAlert(res?.message || 'Bir hata oluştu.', true);
+        } else {
+            showAlert('Başarıyla kaydedildi.', false);
+            setTimeout(() => {
+                closeCaseModal();
+                loadCases();
+            }, 1000);
+        }
+    }
+
+    async function deleteCase(id) {
+        const confirmed = await showConfirm(
+            'Dosyayı Sil/Arşivle',
+            'Bu dosyayı silmek veya arşivlemek istediğinize emin misiniz?',
+            'Evet, Onaylıyorum'
+        );
+        if (!confirmed) return;
+        
+        const res = await apiCall(`/cases/${id}`, 'DELETE');
+        if (!res || res.status !== 'success') {
+            showToast('Hata: ' + (res?.message || 'İşlem başarısız.'), 'error');
+        } else {
+            loadCases();
+        }
+    }
+
+    // İlk yükleme
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadClientsForDropdown();
+        await populateSelect('client_role', 'client_positions');
+        await populateSelect('case_type', 'case_types');
+        await populateFilterSelect('typeFilter', 'case_types', 'Tümü (Tür)');
+        loadCases();
+    });
+</script>
+{% endblock %}

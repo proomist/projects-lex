@@ -1,0 +1,875 @@
+{% extends 'layouts/app.twig' %}
+
+{% block content %}
+<div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col h-full min-h-[500px]">
+    <!-- Toolbar -->
+    <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div class="flex items-center gap-2">
+            <h3 class="font-semibold text-gray-custom flex items-center gap-2">
+                <i data-lucide="book-open" class="w-5 h-5 text-gold-custom"></i>
+                Kullanım Rehberi
+            </h3>
+        </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="px-5 pt-3 border-b border-slate-200 bg-slate-50 overflow-x-auto custom-scroll shrink-0">
+        <div class="flex items-center gap-1 min-w-max">
+            <button onclick="switchTab('dashboard')" data-tab="dashboard" class="guide-tab active px-3 py-2 text-sm font-medium rounded-t-md border border-b-0 transition-colors">Dashboard</button>
+            <button onclick="switchTab('clients')" data-tab="clients" class="guide-tab px-3 py-2 text-sm font-medium rounded-t-md border border-b-0 transition-colors">Müvekkiller</button>
+            <button onclick="switchTab('cases')" data-tab="cases" class="guide-tab px-3 py-2 text-sm font-medium rounded-t-md border border-b-0 transition-colors">Dosyalar</button>
+            <button onclick="switchTab('hearings')" data-tab="hearings" class="guide-tab px-3 py-2 text-sm font-medium rounded-t-md border border-b-0 transition-colors">Duruşmalar</button>
+            <button onclick="switchTab('tasks')" data-tab="tasks" class="guide-tab px-3 py-2 text-sm font-medium rounded-t-md border border-b-0 transition-colors">Görevler</button>
+            <button onclick="switchTab('documents')" data-tab="documents" class="guide-tab px-3 py-2 text-sm font-medium rounded-t-md border border-b-0 transition-colors">Evraklar</button>
+            <button onclick="switchTab('finance')" data-tab="finance" class="guide-tab px-3 py-2 text-sm font-medium rounded-t-md border border-b-0 transition-colors">Mali Takip</button>
+            <button onclick="switchTab('waterfall')" data-tab="waterfall" class="guide-tab px-3 py-2 text-sm font-medium rounded-t-md border border-b-0 transition-colors">Şelale Dağıtım</button>
+            <button onclick="switchTab('reports')" data-tab="reports" class="guide-tab px-3 py-2 text-sm font-medium rounded-t-md border border-b-0 transition-colors">Raporlar</button>
+            <button onclick="switchTab('admin')" data-tab="admin" class="guide-tab px-3 py-2 text-sm font-medium rounded-t-md border border-b-0 transition-colors">Yönetim</button>
+            <button onclick="switchTab('tips')" data-tab="tips" class="guide-tab px-3 py-2 text-sm font-medium rounded-t-md border border-b-0 transition-colors">Genel</button>
+        </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="flex-1 overflow-y-auto custom-scroll p-6">
+
+        <!-- Dashboard -->
+        <div id="tab-dashboard" class="guide-content">
+            <h2 class="text-lg font-bold text-gray-custom mb-4 flex items-center gap-2">
+                <i data-lucide="layout-dashboard" class="w-5 h-5 text-gold-custom"></i> Dashboard (Ana Sayfa)
+            </h2>
+            <p class="text-sm text-slate-600 mb-4">Sisteme giriş yaptığında ilk gördüğün sayfa burası. Tüm büronun anlık durumunu bir bakışta gösterir.</p>
+
+            <h3 class="font-semibold text-gray-custom mb-2 mt-6">Üst Kartlar</h3>
+            <div class="overflow-x-auto mb-4">
+                <table class="w-full text-sm border border-slate-200 rounded-md">
+                    <thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left text-slate-600 border-b">Kart</th><th class="px-3 py-2 text-left text-slate-600 border-b">Ne Gösterir?</th></tr></thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <tr><td class="px-3 py-2 font-medium">Aktif Dosyalar</td><td class="px-3 py-2 text-slate-600">Devam eden dava/dosya sayısı</td></tr>
+                        <tr><td class="px-3 py-2 font-medium">Duruşma (Bu Ay)</td><td class="px-3 py-2 text-slate-600">Bu ay planlanan duruşma sayısı</td></tr>
+                        <tr><td class="px-3 py-2 font-medium">Geciken Görev</td><td class="px-3 py-2 text-slate-600">Süresi geçmiş tamamlanmamış görevler</td></tr>
+                        <tr><td class="px-3 py-2 font-medium">Bekleyen Alacak</td><td class="px-3 py-2 text-slate-600">Tüm müvekkillerden tahsil edilmemiş toplam</td></tr>
+                        <tr><td class="px-3 py-2 font-medium">Bu Ay Kâr</td><td class="px-3 py-2 text-slate-600">Ücret Tahsilatı − Büro Gideri</td></tr>
+                        <tr><td class="px-3 py-2 font-medium">Emanet Kasası</td><td class="px-3 py-2 text-slate-600">Müvekkillerden alınan emanetlerin masraflar düşüldükten sonraki bakiyesi</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="font-semibold text-gray-custom mb-2 mt-6">Alt Bölümler</h3>
+            <ul class="list-disc list-inside text-sm text-slate-600 space-y-2">
+                <li><strong>Yaklaşan Duruşmalar:</strong> En yakın 5 duruşma. "Bugün" olanlar kırmızı etiketle vurgulanır.</li>
+                <li><strong>Bana Atanan Görevler:</strong> Sana atanmış aktif görevler. Checkbox'a tıklayarak doğrudan tamamlayabilirsin.</li>
+            </ul>
+        </div>
+
+        <!-- Müvekkiller -->
+        <div id="tab-clients" class="guide-content hidden">
+            <h2 class="text-lg font-bold text-gray-custom mb-4 flex items-center gap-2">
+                <i data-lucide="users" class="w-5 h-5 text-gold-custom"></i> Müvekkiller
+            </h2>
+
+            <h3 class="font-semibold text-gray-custom mb-2">Yeni Müvekkil Ekleme</h3>
+            <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2 mb-4">
+                <li><strong>"+ Yeni Müvekkil"</strong> butonuna tıkla</li>
+                <li>Müvekkil tipini seç:
+                    <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                        <li><strong>Bireysel</strong> → Ad, Soyad, TC Kimlik No, Doğum Tarihi, Meslek</li>
+                        <li><strong>Kurumsal</strong> → Şirket Adı, Vergi No, Vergi Dairesi, Ticaret Sicil No, Yetkili Kişi</li>
+                    </ul>
+                </li>
+                <li>İletişim bilgilerini gir: Telefon, E-posta, Şehir, İlçe, Açık Adres</li>
+                <li>Varsayılan avukatı ata (opsiyonel)</li>
+                <li><strong>Kaydet</strong></li>
+            </ol>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800 mb-4">
+                <strong>TC Kimlik / Vergi No Doğrulama:</strong> Sistem girdiğin numarayı anında doğrular. Yeşil tik = geçerli, kırmızı çarpı = hatalı.
+            </div>
+
+            <h3 class="font-semibold text-gray-custom mb-2 mt-6">Listede Ne Görürsün?</h3>
+            <div class="overflow-x-auto mb-4">
+                <table class="w-full text-sm border border-slate-200 rounded-md">
+                    <thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left text-slate-600 border-b">Sütun</th><th class="px-3 py-2 text-left text-slate-600 border-b">Açıklama</th></tr></thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <tr><td class="px-3 py-2 font-medium">Vekalet Borcu</td><td class="px-3 py-2 text-slate-600">Alacak − Ücret Tahsilatı. <span class="text-rose-600">Kırmızı</span> = borçlu, <span class="text-emerald-600">yeşil</span> = tamamlandı</td></tr>
+                        <tr><td class="px-3 py-2 font-medium">Emanet Bakiye</td><td class="px-3 py-2 text-slate-600">Emanet − Masraf. <span class="text-emerald-600">Yeşil</span> = bakiye var, <span class="text-rose-600">kırmızı</span> = masraf aşıldı</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="font-semibold text-gray-custom mb-2 mt-6">Arama</h3>
+            <p class="text-sm text-slate-600">Arama kutusuna isim, TC kimlik no, e-posta veya şirket adı yazarak filtreleyebilirsin.</p>
+        </div>
+
+        <!-- Dosyalar -->
+        <div id="tab-cases" class="guide-content hidden">
+            <h2 class="text-lg font-bold text-gray-custom mb-4 flex items-center gap-2">
+                <i data-lucide="folder-open" class="w-5 h-5 text-gold-custom"></i> Dosyalar ve Davalar
+            </h2>
+
+            <h3 class="font-semibold text-gray-custom mb-2">Yeni Dosya Açma</h3>
+            <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2 mb-4">
+                <li><strong>"+ Yeni Dosya"</strong> butonuna tıkla</li>
+                <li>Formda:
+                    <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                        <li><strong>Müvekkil</strong> → Hangi müvekkilin dosyası? (zorunlu)</li>
+                        <li><strong>Müvekkil Pozisyonu</strong> → Davacı / Davalı / Müdahil vb.</li>
+                        <li><strong>Dosya Türü</strong> → Hukuk / Ceza / İcra / İdare vb. (zorunlu)</li>
+                        <li><strong>Mahkeme</strong> → Dosyanın görüldüğü mahkeme</li>
+                        <li><strong>Esas / Takip No</strong> → Mahkemenin verdiği numara</li>
+                        <li><strong>Konu</strong> → Davanın özet konusu (zorunlu)</li>
+                        <li><strong>Karşı Taraf</strong> → Karşı taraf adı ve avukatı</li>
+                    </ul>
+                </li>
+                <li><strong>Kaydet</strong></li>
+            </ol>
+
+            <h3 class="font-semibold text-gray-custom mb-2 mt-6">Dosya Durumları</h3>
+            <div class="flex flex-wrap gap-2 mb-4">
+                <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Karar Aşaması</span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">İstinaf / Yargıtay</span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">Sonuçlandı</span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">Arşiv</span>
+            </div>
+
+            <h3 class="font-semibold text-gray-custom mb-2 mt-6">Filtreleme</h3>
+            <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+                <li><strong>Durum filtresi:</strong> Aktif, Karar Aşaması, İstinaf/Yargıtay, Sonuçlandı, Arşiv</li>
+                <li><strong>Tür filtresi:</strong> Hukuk, Ceza, İcra, İdare vb.</li>
+                <li><strong>Arama:</strong> Dosya no, esas no, konu, karşı taraf, mahkeme veya müvekkil adı</li>
+            </ul>
+        </div>
+
+        <!-- Duruşmalar -->
+        <div id="tab-hearings" class="guide-content hidden">
+            <h2 class="text-lg font-bold text-gray-custom mb-4 flex items-center gap-2">
+                <i data-lucide="gavel" class="w-5 h-5 text-gold-custom"></i> Duruşma Takvimi
+            </h2>
+
+            <h3 class="font-semibold text-gray-custom mb-2">Yeni Duruşma Ekleme</h3>
+            <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2 mb-4">
+                <li><strong>"+ Yeni Duruşma"</strong> butonuna tıkla</li>
+                <li>Formda:
+                    <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                        <li><strong>Dosya</strong> → Hangi dosyanın duruşması? (sadece aktif dosyalar listelenir)</li>
+                        <li><strong>Tarih</strong> ve <strong>Saat</strong> (zorunlu)</li>
+                        <li><strong>Açıklama / Not</strong> → Duruşmayla ilgili notlar</li>
+                        <li><strong>Durum</strong> → Planlandı / Tamamlandı / Ertelendi / İptal</li>
+                    </ul>
+                </li>
+                <li><strong>Kaydet</strong></li>
+            </ol>
+
+            <h3 class="font-semibold text-gray-custom mb-2 mt-6">Renkler</h3>
+            <div class="flex flex-wrap gap-2 mb-4">
+                <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">Planlandı</span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Tamamlandı</span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Ertelendi</span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">İptal</span>
+            </div>
+
+            <div class="bg-sky-50 border border-sky-200 rounded-md p-3 text-sm text-sky-800">
+                <strong>İpucu:</strong> Geçmiş tarihli duruşmalar kırmızı ile vurgulanır. Dashboard'daki "Yaklaşan Duruşmalar" bölümü sadece planlanmış gelecek duruşmaları gösterir.
+            </div>
+        </div>
+
+        <!-- Görevler -->
+        <div id="tab-tasks" class="guide-content hidden">
+            <h2 class="text-lg font-bold text-gray-custom mb-4 flex items-center gap-2">
+                <i data-lucide="check-square" class="w-5 h-5 text-gold-custom"></i> İş Listesi (Görevler)
+            </h2>
+
+            <h3 class="font-semibold text-gray-custom mb-2">Yeni Görev Oluşturma</h3>
+            <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2 mb-4">
+                <li><strong>"+ Yeni Görev"</strong> butonuna tıkla</li>
+                <li>Formda:
+                    <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                        <li><strong>Görev Başlığı</strong> → Ne yapılacak? (zorunlu)</li>
+                        <li><strong>İlgili Dosya</strong> → Varsa hangi dosyayla ilgili?</li>
+                        <li><strong>Görev Tipi</strong> → Dilekçe / Toplantı / Araştırma / İcra İşlemi / Diğer</li>
+                        <li><strong>Sorumlu</strong> → Kim yapacak? (zorunlu)</li>
+                        <li><strong>Bitiş Tarihi</strong> → Son teslim tarihi</li>
+                        <li><strong>Öncelik</strong> → Acil / Yüksek / Normal / Düşük</li>
+                    </ul>
+                </li>
+                <li><strong>Kaydet</strong></li>
+            </ol>
+
+            <h3 class="font-semibold text-gray-custom mb-2 mt-6">Hızlı Tamamlama</h3>
+            <p class="text-sm text-slate-600 mb-4">Her satırın solundaki <strong>checkbox</strong>'a tıklayarak görevi anında "Tamamlandı" yapabilirsin. Tekrar tıklarsan "Devam Ediyor"a geri döner.</p>
+
+            <h3 class="font-semibold text-gray-custom mb-2 mt-6">Renkler ve Uyarılar</h3>
+            <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+                <li><span class="text-rose-600 font-medium">Kırmızı tarih</span> → Bitiş tarihi geçmiş, görev gecikmiş</li>
+                <li><span class="text-rose-600 font-medium">Kırmızı öncelik etiketi</span> → Acil veya Yüksek</li>
+                <li><span class="text-emerald-600 font-medium">Üstü çizili metin + yeşil tik</span> → Tamamlanmış görev</li>
+            </ul>
+        </div>
+
+        <!-- Evraklar -->
+        <div id="tab-documents" class="guide-content hidden">
+            <h2 class="text-lg font-bold text-gray-custom mb-4 flex items-center gap-2">
+                <i data-lucide="file-archive" class="w-5 h-5 text-gold-custom"></i> Evrak Yönetimi
+            </h2>
+
+            <h3 class="font-semibold text-gray-custom mb-2">Belge Yükleme</h3>
+            <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2 mb-4">
+                <li><strong>"+ Evrak Yükle"</strong> butonuna tıkla</li>
+                <li>Dosyayı yükle: kutucuğa <strong>sürükle-bırak</strong> yap veya tıklayıp bilgisayarından seç</li>
+                <li>Formu doldur:
+                    <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                        <li><strong>Evrak Başlığı</strong> → Belgenin adı (zorunlu)</li>
+                        <li><strong>Evrak Türü</strong> → Dilekçe / Sözleşme / Karar vb. (zorunlu)</li>
+                        <li><strong>İlgili Müvekkil</strong> → Kime ait? (opsiyonel)</li>
+                        <li><strong>İlgili Dosya</strong> → Müvekkil seçildikten sonra aktif olur</li>
+                    </ul>
+                </li>
+                <li><strong>Kaydet</strong></li>
+            </ol>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-md p-3 text-sm text-slate-700 mb-4">
+                <strong>Desteklenen formatlar:</strong> UDF, PDF, Word (.doc/.docx), Excel (.xls/.xlsx), JPG, PNG, TIFF<br>
+                <strong>Maksimum boyut:</strong> 10 MB
+            </div>
+
+            <h3 class="font-semibold text-gray-custom mb-2 mt-6">Dosya İkonları</h3>
+            <div class="flex flex-wrap gap-3 text-sm text-slate-600">
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-rose-500 inline-block"></span> PDF</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-blue-500 inline-block"></span> Word</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-emerald-500 inline-block"></span> Excel</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-purple-500 inline-block"></span> Resim</span>
+            </div>
+        </div>
+
+        <!-- Mali Takip -->
+        <div id="tab-finance" class="guide-content hidden">
+            <h2 class="text-lg font-bold text-gray-custom mb-4 flex items-center gap-2">
+                <i data-lucide="wallet" class="w-5 h-5 text-gold-custom"></i> Mali Takip — Kapsamlı Kılavuz
+            </h2>
+            <p class="text-sm text-slate-600 mb-6">Mali Takip sistemi büronun tüm gelir-gider akışını yönetir. Aşağıda her işlem tipi, adım adım talimatlar, formüller ve gerçek hayat senaryoları yer alıyor.</p>
+
+            <!-- Temel Kavramlar -->
+            <h3 class="font-semibold text-gray-custom mb-2 text-base">Temel Kavramlar</h3>
+            <p class="text-sm text-slate-600 mb-3">Sistemde 5 farklı mali hareket tipi var:</p>
+            <div class="overflow-x-auto mb-6">
+                <table class="w-full text-sm border border-slate-200 rounded-md">
+                    <thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left text-slate-600 border-b">Tip</th><th class="px-3 py-2 text-left text-slate-600 border-b">Alt Tip</th><th class="px-3 py-2 text-left text-slate-600 border-b">Ne İçin?</th><th class="px-3 py-2 text-left text-slate-600 border-b">Örnek</th></tr></thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <tr><td class="px-3 py-2 font-medium text-blue-600">Alacak</td><td class="px-3 py-2 text-slate-500">—</td><td class="px-3 py-2 text-slate-600">Müvekkilden alacağın vekalet ücreti</td><td class="px-3 py-2 text-slate-500">50.000 TL vekalet ücreti faturası</td></tr>
+                        <tr><td class="px-3 py-2 font-medium text-emerald-600">Tahsilat</td><td class="px-3 py-2">Ücret</td><td class="px-3 py-2 text-slate-600">Vekalet ücretinin tahsil edilen kısmı</td><td class="px-3 py-2 text-slate-500">Müvekkil 20.000 TL ödedi</td></tr>
+                        <tr><td class="px-3 py-2 font-medium text-emerald-600">Tahsilat</td><td class="px-3 py-2">Emanet</td><td class="px-3 py-2 text-slate-600">Müvekkilden alınan avans/depozito</td><td class="px-3 py-2 text-slate-500">Masraflar için 5.000 TL avans alındı</td></tr>
+                        <tr><td class="px-3 py-2 font-medium text-rose-600">Gider</td><td class="px-3 py-2">Müvekkil Masrafı</td><td class="px-3 py-2 text-slate-600">Müvekkil adına yapılan harcama</td><td class="px-3 py-2 text-slate-500">Harç, bilirkişi, tebligat ücreti</td></tr>
+                        <tr><td class="px-3 py-2 font-medium text-rose-600">Gider</td><td class="px-3 py-2">Büro Gideri</td><td class="px-3 py-2 text-slate-600">Büronun genel gideri</td><td class="px-3 py-2 text-slate-500">Kira, personel maaşı, kırtasiye</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Formüller -->
+            <h3 class="font-semibold text-gray-custom mb-2 text-base">Formüller</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+                <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+                    <div class="text-xs text-slate-500 mb-1">Vekalet Borcu</div>
+                    <div class="text-sm font-semibold text-gray-custom">Alacak − Ücret Tahsilatı</div>
+                    <div class="text-xs text-slate-400 mt-1">Müvekkil sana ne kadar borçlu?</div>
+                </div>
+                <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+                    <div class="text-xs text-slate-500 mb-1">Emanet Bakiye</div>
+                    <div class="text-sm font-semibold text-gray-custom">Emanet − Müvekkil Masrafı</div>
+                    <div class="text-xs text-slate-400 mt-1">Müvekkilin emanet parası ne kadar kaldı?</div>
+                </div>
+                <div class="bg-slate-50 border border-slate-200 rounded-md p-3">
+                    <div class="text-xs text-slate-500 mb-1">Büro Kârı</div>
+                    <div class="text-sm font-semibold text-gray-custom">Ücret Tahsilatı − Büro Gideri</div>
+                    <div class="text-xs text-slate-400 mt-1">Bu ay ne kazandın?</div>
+                </div>
+            </div>
+
+            <!-- 1. Alacak Kaydı -->
+            <div class="border-t border-slate-200 pt-6 mb-6">
+                <h3 class="font-semibold text-gray-custom mb-2 text-base">1. Alacak Kaydı Oluşturma</h3>
+                <p class="text-sm text-slate-500 italic mb-3">Müvekkilinle vekalet ücreti konusunda anlaştın ve faturalandıracaksın.</p>
+                <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2 mb-3">
+                    <li>Menüden <strong>Mali Takip</strong> sayfasına git</li>
+                    <li>Sağ üstteki <strong>"+ Yeni Kayıt"</strong> butonuna tıkla</li>
+                    <li>Açılan formda:
+                        <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                            <li><strong>İşlem Tipi</strong> → "Alacak" seç</li>
+                            <li><strong>Müvekkil</strong> → İlgili müvekkili seç</li>
+                            <li><strong>Dosya</strong> → (varsa) ilgili davayı seç</li>
+                            <li><strong>Tarih</strong> → Fatura/anlaşma tarihi</li>
+                            <li><strong>Tutar</strong> → Vekalet ücreti tutarını gir (örn. 50.000)</li>
+                            <li><strong>KDV</strong> → Gerekiyorsa KDV oranını seç</li>
+                            <li><strong>Kategori</strong> → "Vekalet Ücreti" veya uygun kategoriyi seç</li>
+                            <li><strong>Vade Tarihi</strong> → Ödeme beklenen tarih</li>
+                        </ul>
+                    </li>
+                    <li><strong>Kaydet</strong></li>
+                </ol>
+                <div class="bg-sky-50 border border-sky-200 rounded-md p-3 text-sm text-sky-800">
+                    <strong>Not:</strong> Alacak kaydında alt tip seçimi yoktur. Bu kayıt otomatik olarak müvekkilin "Vekalet Borcu" hesabına yansır.
+                </div>
+            </div>
+
+            <!-- 2. Ücret Tahsilatı -->
+            <div class="border-t border-slate-200 pt-6 mb-6">
+                <h3 class="font-semibold text-gray-custom mb-2 text-base">2. Ücret Tahsilatı Kaydetme</h3>
+                <p class="text-sm text-slate-500 italic mb-3">Müvekkil vekalet ücretinin bir kısmını veya tamamını ödedi.</p>
+                <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2 mb-3">
+                    <li><strong>Mali Takip</strong> sayfasına git → <strong>"+ Yeni Kayıt"</strong></li>
+                    <li>Formda:
+                        <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                            <li><strong>İşlem Tipi</strong> → "Tahsilat" seç</li>
+                            <li><strong>Alt Tip</strong> → "Ücret Tahsilatı" seç <em>(otomatik gelir)</em></li>
+                            <li><strong>Müvekkil</strong> → Ödeme yapan müvekkili seç</li>
+                            <li><strong>Tutar</strong> → Tahsil edilen tutar</li>
+                            <li><strong>Ödeme Yöntemi</strong> → Nakit / Havale / EFT vb.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Kaydet</strong></li>
+                </ol>
+                <div class="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800">
+                    <strong>Önemli:</strong> Ücret tahsilatı kaydettiğinde sistem otomatik olarak en eski vadeli alacağından başlayarak eşleştirir (FIFO). Yani 3 farklı alacak kaydın varsa, ödeme ilk önce en eski alacaktan düşer.
+                </div>
+            </div>
+
+            <!-- 3. Emanet (Avans) -->
+            <div class="border-t border-slate-200 pt-6 mb-6">
+                <h3 class="font-semibold text-gray-custom mb-2 text-base">3. Emanet (Avans) Alma</h3>
+                <p class="text-sm text-slate-500 italic mb-3">Müvekkil dava masrafları için sana avans/emanet para verdi.</p>
+                <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2 mb-3">
+                    <li><strong>Mali Takip</strong> sayfasına git → <strong>"+ Yeni Kayıt"</strong></li>
+                    <li>Formda:
+                        <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                            <li><strong>İşlem Tipi</strong> → "Tahsilat" seç</li>
+                            <li><strong>Alt Tip</strong> → "Emanet (Avans)" seç</li>
+                            <li><strong>Müvekkil</strong> → İlgili müvekkili seç</li>
+                            <li><strong>Tutar</strong> → Alınan emanet tutarı (örn. 5.000 TL)</li>
+                        </ul>
+                    </li>
+                    <li><strong>Kaydet</strong></li>
+                </ol>
+                <div class="bg-sky-50 border border-sky-200 rounded-md p-3 text-sm text-sky-800">
+                    <strong>Fark:</strong> Emanet tahsilatı, vekalet alacaklarından düşmez. Ayrı bir kasada tutulur. Bu para müvekkilin parasıdır ve sadece masrafları karşılamak için kullanılır.
+                </div>
+            </div>
+
+            <!-- 4. Müvekkil Masrafı -->
+            <div class="border-t border-slate-200 pt-6 mb-6">
+                <h3 class="font-semibold text-gray-custom mb-2 text-base">4. Müvekkil Masrafı Girme</h3>
+                <p class="text-sm text-slate-500 italic mb-3">Müvekkil adına harç, bilirkişi ücreti, tebligat masrafı vb. ödedin.</p>
+                <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2 mb-3">
+                    <li><strong>Mali Takip</strong> sayfasına git → <strong>"+ Yeni Kayıt"</strong></li>
+                    <li>Formda:
+                        <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                            <li><strong>İşlem Tipi</strong> → "Gider" seç</li>
+                            <li><strong>Alt Tip</strong> → "Müvekkil Masrafı" seç <em>(otomatik gelir)</em></li>
+                            <li><strong>Müvekkil</strong> → Masraf yapılan müvekkili seç</li>
+                            <li><strong>Dosya</strong> → İlgili davayı seç</li>
+                            <li><strong>Tutar</strong> → Harcanan tutar</li>
+                            <li><strong>Kategori</strong> → "Harç", "Bilirkişi", "Tebligat" vb.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Kaydet</strong></li>
+                </ol>
+                <div class="bg-sky-50 border border-sky-200 rounded-md p-3 text-sm text-sky-800">
+                    <strong>Sonuç:</strong> Bu masraf, müvekkilin emanet bakiyesinden düşer. Eğer emanet bakiyesi negatife düşerse, müvekkil sana masraf borçlu demektir.
+                </div>
+            </div>
+
+            <!-- 5. Büro Gideri -->
+            <div class="border-t border-slate-200 pt-6 mb-6">
+                <h3 class="font-semibold text-gray-custom mb-2 text-base">5. Büro Gideri Girme</h3>
+                <p class="text-sm text-slate-500 italic mb-3">Büronun genel giderlerini kaydet: kira, personel maaşı, kırtasiye, internet vb.</p>
+                <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2 mb-3">
+                    <li><strong>Mali Takip</strong> sayfasına git → <strong>"+ Yeni Kayıt"</strong></li>
+                    <li>Formda:
+                        <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                            <li><strong>İşlem Tipi</strong> → "Gider" seç</li>
+                            <li><strong>Alt Tip</strong> → "Büro Gideri" seç</li>
+                            <li>⚠️ <strong>Müvekkil ve Dosya alanları otomatik olarak gizlenir</strong> (büro gideri hiçbir müvekkile bağlı değildir)</li>
+                            <li><strong>Tutar</strong> → Gider tutarı</li>
+                            <li><strong>Kategori</strong> → "Kira", "Personel", "Kırtasiye" vb.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Kaydet</strong></li>
+                </ol>
+                <div class="bg-sky-50 border border-sky-200 rounded-md p-3 text-sm text-sky-800">
+                    <strong>Not:</strong> Büro giderleri kâr hesabında kullanılır. Ücret tahsilatlarından büro giderlerini çıkarınca aylık kârını görürsün.
+                </div>
+            </div>
+
+            <!-- 6. Bakiye Takibi -->
+            <div class="border-t border-slate-200 pt-6 mb-6">
+                <h3 class="font-semibold text-gray-custom mb-2 text-base">6. Müvekkil Bakiyelerini Takip Etme</h3>
+                <p class="text-sm text-slate-600 mb-3">Menüden <strong>Müvekkiller</strong> sayfasına git. Tabloda her müvekkil için iki önemli sütun göreceksin:</p>
+                <div class="overflow-x-auto mb-4">
+                    <table class="w-full text-sm border border-slate-200 rounded-md">
+                        <thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left text-slate-600 border-b">Sütun</th><th class="px-3 py-2 text-left text-slate-600 border-b">Anlamı</th><th class="px-3 py-2 text-left text-slate-600 border-b">Renk Kodu</th></tr></thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr><td class="px-3 py-2 font-medium">Vekalet Borcu</td><td class="px-3 py-2 text-slate-600">Alacak − Ücret Tahsilatı</td><td class="px-3 py-2"><span class="text-rose-600">Kırmızı</span> = borç var / <span class="text-emerald-600">Yeşil</span> = tamamlandı</td></tr>
+                            <tr><td class="px-3 py-2 font-medium">Emanet Bakiye</td><td class="px-3 py-2 text-slate-600">Emanet − Masraf</td><td class="px-3 py-2"><span class="text-emerald-600">Yeşil</span> = bakiye var / <span class="text-rose-600">Kırmızı</span> = masraf aşıldı</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <h4 class="font-medium text-gray-custom mb-2 text-sm">Nasıl Oku?</h4>
+                <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+                    <li><strong>Vekalet Borcu: 30.000 TL <span class="text-rose-600">(kırmızı)</span></strong> → Müvekkil sana hâlâ 30.000 TL vekalet ücreti borçlu</li>
+                    <li><strong>Vekalet Borcu: 0 TL <span class="text-emerald-600">(yeşil)</span></strong> → Vekalet ücreti tamamen ödendi</li>
+                    <li><strong>Emanet Bakiye: 2.000 TL <span class="text-emerald-600">(yeşil)</span></strong> → Müvekkilin emanet kasasında 2.000 TL kalmış</li>
+                    <li><strong>Emanet Bakiye: -1.500 TL <span class="text-rose-600">(kırmızı)</span></strong> → Masraflar emaneti 1.500 TL aştı, müvekkil borçlu</li>
+                </ul>
+            </div>
+
+            <!-- 7. KDV İşlemleri -->
+            <div class="border-t border-slate-200 pt-6 mb-6">
+                <h3 class="font-semibold text-gray-custom mb-2 text-base">7. KDV Hesaplama</h3>
+                <p class="text-sm text-slate-600 mb-3">Her gelir/gider kaydında KDV hesaplama yapabilirsin. Varsayılan olarak <strong>KDV Dahil</strong> seçili gelir:</p>
+                <ul class="list-disc list-inside text-sm text-slate-600 space-y-1 mb-3">
+                    <li><strong>KDV Dahil:</strong> Girdiğin tutar toplamı zaten KDV içeriyor. Sistem net tutarı ayrıştırır.</li>
+                    <li><strong>KDV Hariç:</strong> Girdiğin tutar net tutardır, KDV üzerine eklenir. <em>Örn: 50.000 TL + %20 KDV = 60.000 TL toplam.</em></li>
+                    <li><strong>KDV Yok:</strong> KDV hesaplaması yapılmaz.</li>
+                </ul>
+            </div>
+
+            <!-- 8. Dashboard Kartları -->
+            <div class="border-t border-slate-200 pt-6 mb-6">
+                <h3 class="font-semibold text-gray-custom mb-2 text-base">8. Dashboard Kartları</h3>
+                <p class="text-sm text-slate-600 mb-3"><strong>Ana Sayfa</strong>'da (Dashboard) mali durumunu bir bakışta görebilirsin:</p>
+                <div class="overflow-x-auto mb-4">
+                    <table class="w-full text-sm border border-slate-200 rounded-md">
+                        <thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left text-slate-600 border-b">Kart</th><th class="px-3 py-2 text-left text-slate-600 border-b">Açıklama</th></tr></thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr><td class="px-3 py-2 font-medium">Bekleyen Alacak</td><td class="px-3 py-2 text-slate-600">Tüm müvekkillerden alınması gereken toplam</td></tr>
+                            <tr><td class="px-3 py-2 font-medium">Bu Ay Kâr</td><td class="px-3 py-2 text-slate-600">Bu ayki ücret tahsilatı − büro gideri</td></tr>
+                            <tr><td class="px-3 py-2 font-medium">Emanet Kasası</td><td class="px-3 py-2 text-slate-600">Müvekkillere ait toplam emanet bakiyesi</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+                    <li><strong>Kâr kartı <span class="text-emerald-600">yeşil</span></strong> → Bu ay kârdayım</li>
+                    <li><strong>Kâr kartı <span class="text-rose-600">kırmızı</span></strong> → Bu ay giderler geliri aştı</li>
+                    <li><strong>Emanet kasası <span class="text-emerald-600">yeşil</span></strong> → Müvekkillerin emanet parası kasada</li>
+                    <li><strong>Emanet kasası <span class="text-rose-600">kırmızı</span></strong> → Masraflar emanetleri aştı</li>
+                </ul>
+            </div>
+
+            <!-- 9. Filtreleme -->
+            <div class="border-t border-slate-200 pt-6 mb-6">
+                <h3 class="font-semibold text-gray-custom mb-2 text-base">9. Filtreleme</h3>
+                <p class="text-sm text-slate-600 mb-3">Mali Takip sayfasında üst kısımdaki filtre seçenekleriyle kayıtlarını daraltabilirsin:</p>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                    <span class="inline-flex items-center justify-center px-2.5 py-1.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">Tümü</span>
+                    <span class="inline-flex items-center justify-center px-2.5 py-1.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">Alacak</span>
+                    <span class="inline-flex items-center justify-center px-2.5 py-1.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Tahsilat (Tümü)</span>
+                    <span class="inline-flex items-center justify-center px-2.5 py-1.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Ücret Tahsilatı</span>
+                    <span class="inline-flex items-center justify-center px-2.5 py-1.5 rounded text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">Emanet</span>
+                    <span class="inline-flex items-center justify-center px-2.5 py-1.5 rounded text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">Gider (Tümü)</span>
+                    <span class="inline-flex items-center justify-center px-2.5 py-1.5 rounded text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">Müvekkil Masrafı</span>
+                    <span class="inline-flex items-center justify-center px-2.5 py-1.5 rounded text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200">Büro Gideri</span>
+                </div>
+                <p class="text-sm text-slate-600">Ayrıca tarih aralığı filtrelemesi de mevcut.</p>
+            </div>
+
+            <!-- Gerçek Hayat Senaryoları -->
+            <div class="border-t-2 border-gold-custom/30 pt-6 mb-6">
+                <h3 class="font-bold text-gray-custom mb-4 text-base flex items-center gap-2">
+                    <i data-lucide="bookmark" class="w-5 h-5 text-gold-custom"></i> Gerçek Hayat Senaryoları
+                </h3>
+
+                <!-- Senaryo 1 -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
+                    <h4 class="font-semibold text-gray-custom mb-1">Senaryo 1: Yeni Dava Başlangıcı</h4>
+                    <p class="text-sm text-slate-500 italic mb-3">Ahmet Yılmaz boşanma davası için sana geldi. 40.000 TL vekalet ücreti + 5.000 TL masraf avansı üzerinde anlaştınız.</p>
+                    <ol class="list-decimal list-inside text-sm text-slate-600 space-y-1 mb-3">
+                        <li><strong>Müvekkiller</strong> → Ahmet Yılmaz'ı kaydet</li>
+                        <li><strong>Dosyalar</strong> → Boşanma davasını aç, Ahmet Yılmaz'a bağla</li>
+                        <li><strong>Mali Takip</strong> → Yeni Kayıt → <strong>Alacak</strong>: 40.000 TL (vekalet ücreti)</li>
+                        <li><strong>Mali Takip</strong> → Yeni Kayıt → <strong>Tahsilat &gt; Emanet</strong>: 5.000 TL (masraf avansı)</li>
+                    </ol>
+                    <div class="flex flex-wrap gap-3 text-xs">
+                        <span class="px-2 py-1 rounded bg-rose-50 text-rose-700 border border-rose-200">Vekalet Borcu: 40.000 TL</span>
+                        <span class="px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Emanet Bakiye: 5.000 TL</span>
+                    </div>
+                </div>
+
+                <!-- Senaryo 2 -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
+                    <h4 class="font-semibold text-gray-custom mb-1">Senaryo 2: Dava Süreci — Masraflar Çıkıyor</h4>
+                    <p class="text-sm text-slate-500 italic mb-3">Dava başladı. 2.000 TL harç ve 3.500 TL bilirkişi ücreti ödedin.</p>
+                    <ol class="list-decimal list-inside text-sm text-slate-600 space-y-1 mb-3">
+                        <li><strong>Mali Takip</strong> → Yeni Kayıt → <strong>Gider &gt; Müvekkil Masrafı</strong>: 2.000 TL (Harç)</li>
+                        <li><strong>Mali Takip</strong> → Yeni Kayıt → <strong>Gider &gt; Müvekkil Masrafı</strong>: 3.500 TL (Bilirkişi)</li>
+                    </ol>
+                    <div class="flex flex-wrap gap-3 text-xs mb-2">
+                        <span class="px-2 py-1 rounded bg-rose-50 text-rose-700 border border-rose-200">Emanet Bakiye: 5.000 − 2.000 − 3.500 = -500 TL</span>
+                    </div>
+                    <p class="text-xs text-amber-700">⚠️ Müvekkile haber ver: "Masraflar emaneti 500 TL aştı, ek avans gerekiyor."</p>
+                </div>
+
+                <!-- Senaryo 3 -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
+                    <h4 class="font-semibold text-gray-custom mb-1">Senaryo 3: Müvekkil Ödeme Yapıyor</h4>
+                    <p class="text-sm text-slate-500 italic mb-3">Ahmet Yılmaz 25.000 TL vekalet ücreti ödemesi + 2.000 TL ek emanet gönderdi.</p>
+                    <ol class="list-decimal list-inside text-sm text-slate-600 space-y-1 mb-3">
+                        <li><strong>Mali Takip</strong> → Yeni Kayıt → <strong>Tahsilat &gt; Ücret Tahsilatı</strong>: 25.000 TL</li>
+                        <li><strong>Mali Takip</strong> → Yeni Kayıt → <strong>Tahsilat &gt; Emanet</strong>: 2.000 TL</li>
+                    </ol>
+                    <div class="flex flex-wrap gap-3 text-xs">
+                        <span class="px-2 py-1 rounded bg-rose-50 text-rose-700 border border-rose-200">Vekalet Borcu: 40.000 − 25.000 = 15.000 TL</span>
+                        <span class="px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Emanet Bakiye: −500 + 2.000 = 1.500 TL</span>
+                    </div>
+                </div>
+
+                <!-- Senaryo 4 -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
+                    <h4 class="font-semibold text-gray-custom mb-1">Senaryo 4: Ay Sonu Büro Giderleri</h4>
+                    <p class="text-sm text-slate-500 italic mb-3">Bu ay büro kirası 15.000 TL, asistan maaşı 12.000 TL ve kırtasiye 800 TL harcadın.</p>
+                    <ol class="list-decimal list-inside text-sm text-slate-600 space-y-1 mb-3">
+                        <li><strong>Mali Takip</strong> → Yeni Kayıt → <strong>Gider &gt; Büro Gideri</strong>: 15.000 TL (Kira)</li>
+                        <li><strong>Mali Takip</strong> → Yeni Kayıt → <strong>Gider &gt; Büro Gideri</strong>: 12.000 TL (Personel)</li>
+                        <li><strong>Mali Takip</strong> → Yeni Kayıt → <strong>Gider &gt; Büro Gideri</strong>: 800 TL (Kırtasiye)</li>
+                    </ol>
+                    <p class="text-xs text-slate-500 mb-2">Müvekkil seçmene gerek yok — büro gideri seçtiğinde müvekkil alanı otomatik gizlenir.</p>
+                    <div class="flex flex-wrap gap-3 text-xs">
+                        <span class="px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">Ücret Tahsilatı: 25.000 TL</span>
+                        <span class="px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">Büro Gideri: 27.800 TL</span>
+                        <span class="px-2 py-1 rounded bg-rose-50 text-rose-700 border border-rose-200">Bu Ay Kâr: -2.800 TL (zarar)</span>
+                    </div>
+                </div>
+
+                <!-- Senaryo 5 -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
+                    <h4 class="font-semibold text-gray-custom mb-1">Senaryo 5: Birden Fazla Müvekkilin Takibi</h4>
+                    <p class="text-sm text-slate-500 italic mb-3">3 aktif müvekkilin var. Hangisinin borcu var, hangisinin emaneti bitti?</p>
+                    <ol class="list-decimal list-inside text-sm text-slate-600 space-y-1 mb-3">
+                        <li><strong>Müvekkiller</strong> sayfasına git</li>
+                        <li>Tablodaki <strong>Vekalet Borcu</strong> ve <strong>Emanet Bakiye</strong> sütunlarına bak</li>
+                    </ol>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs border border-slate-200 rounded-md">
+                            <thead class="bg-slate-100"><tr><th class="px-2 py-1.5 text-left text-slate-500">Müvekkil</th><th class="px-2 py-1.5 text-left text-slate-500">Vekalet Borcu</th><th class="px-2 py-1.5 text-left text-slate-500">Emanet Bakiye</th></tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr><td class="px-2 py-1.5">Ahmet Yılmaz</td><td class="px-2 py-1.5 text-rose-600 font-medium">15.000 TL</td><td class="px-2 py-1.5 text-emerald-600 font-medium">1.500 TL</td></tr>
+                                <tr><td class="px-2 py-1.5">Fatma Demir</td><td class="px-2 py-1.5 text-emerald-600 font-medium">0 TL</td><td class="px-2 py-1.5 text-rose-600 font-medium">-3.000 TL</td></tr>
+                                <tr><td class="px-2 py-1.5">ABC Ltd. Şti.</td><td class="px-2 py-1.5 text-rose-600 font-medium">80.000 TL</td><td class="px-2 py-1.5 text-emerald-600 font-medium">10.000 TL</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Senaryo 6 -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
+                    <h4 class="font-semibold text-gray-custom mb-1">Senaryo 6: Aylık Kâr Raporu Çıkarma</h4>
+                    <p class="text-sm text-slate-500 italic mb-3">Ay sonunda büronun mali durumunu görmek istiyorsun.</p>
+                    <ol class="list-decimal list-inside text-sm text-slate-600 space-y-1 mb-3">
+                        <li><strong>Raporlar</strong> sayfasına git</li>
+                        <li>Tarih aralığını bu ayın başı ve sonu olarak ayarla</li>
+                        <li><strong>"Uygula"</strong> butonuna tıkla</li>
+                    </ol>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                        <span class="px-2 py-1.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-center">Ücret Tahsilatı: 85.000 TL</span>
+                        <span class="px-2 py-1.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-center">Büro Gideri: 42.000 TL</span>
+                        <span class="px-2 py-1.5 rounded bg-gold-custom/10 text-gold-custom border border-gold-custom/30 text-center font-semibold">Kâr: 43.000 TL</span>
+                        <span class="px-2 py-1.5 rounded bg-teal-50 text-teal-700 border border-teal-200 text-center">Emanet Kasası: 15.000 TL</span>
+                        <span class="px-2 py-1.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-center">Bekleyen Alacak: 120.000 TL</span>
+                    </div>
+                </div>
+
+                <!-- Senaryo 7 -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
+                    <h4 class="font-semibold text-gray-custom mb-1">Senaryo 7: KDV'li Fatura Kesme</h4>
+                    <p class="text-sm text-slate-500 italic mb-3">Müvekkile 50.000 TL + KDV vekalet ücreti faturası keseceksin.</p>
+                    <ol class="list-decimal list-inside text-sm text-slate-600 space-y-1 mb-3">
+                        <li><strong>Mali Takip</strong> → Yeni Kayıt → <strong>Alacak</strong></li>
+                        <li><strong>Tutar</strong>: 50.000 TL</li>
+                        <li><strong>KDV Hesaplama</strong>: "KDV Hariç" seç, oran %20</li>
+                        <li>Sistem otomatik hesaplar: Net 50.000 TL + KDV 10.000 TL = <strong>Toplam 60.000 TL</strong></li>
+                        <li><strong>Kaydet</strong></li>
+                    </ol>
+                    <p class="text-xs text-slate-500">Müvekkil 60.000 TL borçlanır (KDV dahil toplam).</p>
+                </div>
+            </div>
+
+            <!-- Sık Yapılan Hatalar -->
+            <div class="border-t border-slate-200 pt-6 mb-6">
+                <h3 class="font-semibold text-gray-custom mb-3 text-base flex items-center gap-2">
+                    <i data-lucide="alert-circle" class="w-5 h-5 text-rose-500"></i> Sık Yapılan Hatalar
+                </h3>
+                <div class="overflow-x-auto mb-4">
+                    <table class="w-full text-sm border border-slate-200 rounded-md">
+                        <thead class="bg-rose-50"><tr><th class="px-3 py-2 text-left text-rose-700 border-b border-rose-200">Hata</th><th class="px-3 py-2 text-left text-emerald-700 border-b border-rose-200">Doğrusu</th></tr></thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr><td class="px-3 py-2 text-slate-600">Emanet parayı "Ücret Tahsilatı" olarak kaydetmek</td><td class="px-3 py-2 text-slate-600">Emanet seçmelisin, yoksa alacak borçtan düşer</td></tr>
+                            <tr><td class="px-3 py-2 text-slate-600">Harç masrafını "Büro Gideri" olarak girmek</td><td class="px-3 py-2 text-slate-600">"Müvekkil Masrafı" seçmelisin, yoksa müvekkilin emanetinden düşmez</td></tr>
+                            <tr><td class="px-3 py-2 text-slate-600">Büro kirasını müvekkile bağlamak</td><td class="px-3 py-2 text-slate-600">"Büro Gideri" seç, müvekkil alanı otomatik gizlenir</td></tr>
+                            <tr><td class="px-3 py-2 text-slate-600">Kısmi ödemeyi tek kayıt yapmak</td><td class="px-3 py-2 text-slate-600">Her ödeme ayrı kayıt olmalı, sistem otomatik eşleştirir</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Kısa Özet Tablosu -->
+            <div class="border-t border-slate-200 pt-6">
+                <h3 class="font-semibold text-gray-custom mb-3 text-base flex items-center gap-2">
+                    <i data-lucide="table" class="w-5 h-5 text-gold-custom"></i> Kısa Özet Tablosu
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm border border-slate-200 rounded-md">
+                        <thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left text-slate-600 border-b">Ne Yapacaksın?</th><th class="px-3 py-2 text-left text-slate-600 border-b">İşlem Tipi</th><th class="px-3 py-2 text-left text-slate-600 border-b">Alt Tip</th></tr></thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr><td class="px-3 py-2 text-slate-600">Vekalet ücreti faturası kes</td><td class="px-3 py-2 font-medium text-blue-600">Alacak</td><td class="px-3 py-2 text-slate-500">—</td></tr>
+                            <tr><td class="px-3 py-2 text-slate-600">Müvekkil vekalet ücretini ödedi</td><td class="px-3 py-2 font-medium text-emerald-600">Tahsilat</td><td class="px-3 py-2">Ücret Tahsilatı</td></tr>
+                            <tr><td class="px-3 py-2 text-slate-600">Müvekkilden masraf avansı al</td><td class="px-3 py-2 font-medium text-emerald-600">Tahsilat</td><td class="px-3 py-2">Emanet</td></tr>
+                            <tr><td class="px-3 py-2 text-slate-600">Müvekkil adına harç/masraf öde</td><td class="px-3 py-2 font-medium text-rose-600">Gider</td><td class="px-3 py-2">Müvekkil Masrafı</td></tr>
+                            <tr><td class="px-3 py-2 text-slate-600">Büro kirası / personel maaşı öde</td><td class="px-3 py-2 font-medium text-rose-600">Gider</td><td class="px-3 py-2">Büro Gideri</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Şelale Dağıtım (Waterfall) -->
+        <div id="tab-waterfall" class="guide-content hidden">
+            <h2 class="text-lg font-bold text-gray-custom mb-4 flex items-center gap-2">
+                <i data-lucide="layers" class="w-5 h-5 text-emerald-600"></i> Şelale Modeli (Tahsilat Havuzu ve Dağıtım)
+            </h2>
+            <p class="text-sm text-slate-600 mb-6">İcra dosyaları ve tahsilat gerektiren davalarda paranın avukat, müvekkil ve masraflar arasında adil ve yasalara uygun bir şekilde paylaştırılmasını sağlayan <strong>otomatik dağıtım (şelale) motorudur.</strong> Tamamen "Emanet Para" kurallarına göre çalışır.</p>
+
+            <h3 class="font-semibold text-gray-custom mb-3 mt-6">Nasıl Erişilir?</h3>
+            <p class="text-sm text-slate-600 mb-4"><strong>Dosyalar</strong> menüsüne git. Listelenen kayıtların "İşlemler" sütununda (en sağda) yeşil renkli, üzerine gelince <i data-lucide="calculator" class="w-4 h-4 inline-block text-emerald-600 mx-1"></i> (Hesap Makinesi) simgesi çıkan "Mali Akış & Dağıtım" butonuna tıkla.</p>
+
+            <h3 class="font-semibold text-gray-custom mb-3 mt-8">Senaryo Üzerinden Adım Adım Kullanım</h3>
+            
+            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-5 mb-6">
+                <h4 class="font-bold text-indigo-900 mb-2">Örnek Vaka (Zaman Çizelgeli Senaryo)</h4>
+                <ul class="list-disc list-inside text-sm text-indigo-800 space-y-2">
+                    <li><strong class="text-indigo-950">10 Ocak 2026:</strong> Müvekkil ofisine geldi. Bir senedin icrası için (100.000 TL anapara) %10 üzerinden anlaştınız. Sisteme dosyayı kaydettin.</li>
+                    <li><strong class="text-indigo-950">12 Ocak 2026:</strong> İcra takibini başlatmak, harç ve tebligatları ödemek için müvekkilden <strong>3.000 TL masraf avansı</strong> aldın (Emanet tahsilatı olarak işledin).</li>
+                    <li><strong class="text-indigo-950">15 Mayıs 2026:</strong> Aylar geçti, icra kesinleşti. Borçludan toplam <strong>120.000 TL brüt</strong> tahsilat yapıldı (Anapara + Karşı Vekalet vb.). İcra dairesi parayı gönderirken <strong>4.000 TL tahsil harcı</strong> kesti ve o gün banka hesabına <strong>Net 116.000 TL</strong> yattı.</li>
+                </ul>
+                <p class="text-sm font-medium text-indigo-900 mt-3 pt-3 border-t border-indigo-200">
+                    Aylardır süren bu dosyanın dağıtımını nihayet bugün yapıyorsun. Kesenin ağzını açıp paraları pay etmelisin. Nasıl olacak?
+                </p>
+            </div>
+
+            <div class="space-y-6 relative before:absolute before:inset-0 before:ml-4 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
+                
+                <!-- Adım 1 -->
+                <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-full border-4 border-white bg-emerald-500 text-white font-bold text-sm shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">1</div>
+                    <div class="w-[calc(100%-3rem)] md:w-[calc(50%-2rem)] p-4 rounded border border-slate-200 bg-white shadow-sm">
+                        <div class="flex items-center justify-between mb-1">
+                            <h4 class="font-bold text-slate-800 text-sm">Sözleşmeyi Tanımla (10 Ocak'ta yapılan anlaşma)</h4>
+                        </div>
+                        <p class="text-sm text-slate-600">Açılan şelale ekranının sol üst köşesinde "Vekalet Sözleşmesi" bulunur. Müvekkil ile %10 üzerinden anlaştığın için <strong>"Yüzdelik Oran (%)"</strong> seç ve 10 yazıp kaydet. Bu bilgi dağıtımda sana rehber olacak.</p>
+                    </div>
+                </div>
+
+                <!-- Adım 2 -->
+                <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-full border-4 border-white bg-blue-500 text-white font-bold text-sm shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">2</div>
+                    <div class="w-[calc(100%-3rem)] md:w-[calc(50%-2rem)] p-4 rounded border border-slate-200 bg-white shadow-sm">
+                        <div class="flex items-center justify-between mb-1">
+                            <h4 class="font-bold text-slate-800 text-sm">Tahsilatı Havuza Al (15 Mayıs'ta hesaba yatan para)</h4>
+                        </div>
+                        <p class="text-sm text-slate-600">Sağ üstteki <strong>"+ Yeni Tahsilat (Havuza Al)"</strong> butonuna bas. Açılan ekrana Tahsilat Kaynağını (İcra Dairesi) seç, Brüt 120.000 TL, Kesintiler (Tahsil Harcı) hanesine 4.000 TL ve tarihi de 15.05.2026 olarak yaz.<br>Sistem otomatik olarak <strong>Net 116.000 TL'yi</strong> hesaplayıp hesabına (Havuza) alacaktır.</p>
+                        <div class="mt-2 text-xs bg-slate-50 p-2 rounded text-slate-500 border border-slate-100">💡 Dikkat: Para şu an sadece "Havuzda" beklemektedir, paylaştırma (şelale) yapılana kadar cari hesaplara işlenmez. Dosyanda güvenle durur. Yanlış girdiysen <i data-lucide="trash-2" class="w-3 h-3 inline text-rose-500"></i> ile silebilirsin.</div>
+                    </div>
+                </div>
+
+                <!-- Adım 3 -->
+                <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-full border-4 border-white bg-indigo-500 text-white font-bold text-sm shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">3</div>
+                    <div class="w-[calc(100%-3rem)] md:w-[calc(50%-2rem)] p-4 rounded border border-slate-200 bg-white shadow-sm">
+                        <div class="flex items-center justify-between mb-1">
+                            <h4 class="font-bold text-slate-800 text-sm">Şelale Dağıtımı Yap (Bugün - Müvekkile ödeme öncesi)</h4>
+                        </div>
+                        <p class="text-sm text-slate-600">Havuzdaki o kaydın hemen altında bulunan <span class="text-indigo-600 font-medium whitespace-nowrap"><i data-lucide="split-square-horizontal" class="w-3 h-3 inline"></i> Şelale Dağıtım Yap</span> butonuna tıkla.</p>
+                        <p class="text-sm text-slate-600 mt-2">Sistem sana 15 Mayıs'ta gelen "116.000 TL elimizde para var, bunu nereye dağıtacağız?" diye sorar. Örnek dağıtım:</p>
+                        <ul class="list-disc list-inside mt-2 text-xs text-slate-600 space-y-1">
+                            <li><strong>Karşı Vekalet Ücreti:</strong> 10.000 TL (Senin Gelirin)</li>
+                            <li><strong>Sözleşmesel Ücret (Müv.):</strong> 10.000 TL (10 Ocak'taki anaparadan anlaştığın miktar - Senin Gelirin)</li>
+                            <li><strong>Masraf İadesi:</strong> 3.000 TL (12 Ocak'ta müvekkilin verdiği, şimdi cebinden çıkmadan iade alacağın - Emanet hesabı)</li>
+                            <li><strong>Müvekkil Anapara (Kalan):</strong> 93.000 TL (Müvekkilin esas alacağı - Emanet hesabı)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Adım 4 -->
+                <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-full border-4 border-white bg-gold-custom text-white font-bold text-sm shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">4</div>
+                    <div class="w-[calc(100%-3rem)] md:w-[calc(50%-2rem)] p-4 rounded border border-slate-200 bg-white shadow-sm">
+                        <div class="flex items-center justify-between mb-1">
+                            <h4 class="font-bold text-slate-800 text-sm">Sistemin Otomatik Cari İşlemi</h4>
+                        </div>
+                        <p class="text-sm text-slate-600">"Dağıtımı Onayla" dediğin saniyede sistem arka planda efsanevi bir hesaplaşma yapar:</p>
+                        <div class="mt-2 text-xs pace-y-1">
+                            <div class="flex items-start gap-1"><i data-lucide="check" class="w-3 h-3 text-emerald-500 mt-0.5"></i> <span>Müvekkilden o gün %10 tahsil ettiğin ve karşı taraftan aldığın vekalet ücretlerin toplamı (<strong>20.000 TL</strong>), "Ücret Tahsilatı" olarak Büro Kârına (Gelir) işlenir.</span></div>
+                            <div class="flex items-start gap-1"><i data-lucide="check" class="w-3 h-3 text-emerald-500 mt-0.5"></i> <span>Müvekkiline iade edilecek masraf avansı dahil müvekkile ait paralar (Geri kalan <strong>96.000 TL</strong>), eksiksiz olarak "Emanet Tahsilatı" olarak kasaya işlenir.</span></div>
+                            <div class="flex items-start gap-1"><i data-lucide="check" class="w-3 h-3 text-emerald-500 mt-0.5"></i> <span>Genel ekstreyi açtığında, müvekkiline masraf iadesiyle birlikte tam <strong>96.000 TL ödeme (havale)</strong> yapman gerektiğini net olarak görürsün. Havaleni yapar, "Emanetten Ödeme" girer ve dosyayı sıfır hatayla kapatırsın.</span></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Raporlar -->
+        <div id="tab-reports" class="guide-content hidden">
+            <h2 class="text-lg font-bold text-gray-custom mb-4 flex items-center gap-2">
+                <i data-lucide="bar-chart-3" class="w-5 h-5 text-gold-custom"></i> Raporlar
+            </h2>
+
+            <h3 class="font-semibold text-gray-custom mb-2">Mali Rapor</h3>
+            <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2 mb-4">
+                <li>Menüden <strong>Raporlar</strong> sayfasına git</li>
+                <li>Üst kısımdaki tarih aralığını ayarla (başlangıç − bitiş)</li>
+                <li><strong>"Uygula"</strong> butonuna tıkla</li>
+            </ol>
+
+            <h3 class="font-semibold text-gray-custom mb-2 mt-4">Göreceğin Bilgiler</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                <div class="flex items-center gap-2 text-sm"><span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span><span>Ücret Tahsilatı — Vekalet ücreti ödemeleri</span></div>
+                <div class="flex items-center gap-2 text-sm"><span class="w-2 h-2 rounded-full bg-teal-500 shrink-0"></span><span>Emanet Girişi — Alınan emanetler</span></div>
+                <div class="flex items-center gap-2 text-sm"><span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span><span>Müvekkil Masrafı — Müvekkil adına harcamalar</span></div>
+                <div class="flex items-center gap-2 text-sm"><span class="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span><span>Büro Gideri — Genel büro masrafları</span></div>
+                <div class="flex items-center gap-2 text-sm"><span class="w-2 h-2 rounded-full bg-blue-500 shrink-0"></span><span>Bekleyen Alacak — Henüz tahsil edilmemiş</span></div>
+                <div class="flex items-center gap-2 text-sm"><span class="w-2 h-2 rounded-full bg-gold-custom shrink-0"></span><span><strong>Kâr</strong> — Ücret Tahsilatı − Büro Gideri</span></div>
+            </div>
+
+            <h3 class="font-semibold text-gray-custom mb-2 mt-6">Diğer Raporlar</h3>
+            <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+                <li><strong>Dava İstatistikleri</strong> — Dosya durumlarına göre dağılım</li>
+                <li><strong>Görev İstatistikleri</strong> — Görev durumlarına göre dağılım</li>
+                <li><strong>Kategori Analizi</strong> — Her mali kategori bazında detaylı dağılım</li>
+            </ul>
+        </div>
+
+        <!-- Yönetim -->
+        <div id="tab-admin" class="guide-content hidden">
+            <h2 class="text-lg font-bold text-gray-custom mb-4 flex items-center gap-2">
+                <i data-lucide="shield" class="w-5 h-5 text-gold-custom"></i> Yönetim
+            </h2>
+            <div class="bg-sky-50 border border-sky-200 rounded-md p-3 text-sm text-sky-800 mb-6">
+                Bu bölüm sadece <strong>Kurucu Ortak</strong> ve <strong>Sistem Yöneticisi</strong> rolleri için geçerlidir.
+            </div>
+
+            <h3 class="font-semibold text-gray-custom mb-2">Personel Yönetimi</h3>
+            <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2 mb-4">
+                <li>Menüden <strong>Personel</strong> sayfasına git</li>
+                <li><strong>"+ Yeni Kullanıcı"</strong> butonuna tıkla</li>
+                <li>Ad, Soyad, Kullanıcı Adı, E-posta, Şifre, Ünvan/Rol, Durum gir</li>
+                <li><strong>Kaydet</strong></li>
+            </ol>
+            <p class="text-sm text-slate-600 mb-4">Şifre girerken 4 çubuklu güç göstergesi göreceksin. 4 çubuk = güçlü şifre.</p>
+
+            <h3 class="font-semibold text-gray-custom mb-2 mt-6">Roller ve Yetkiler</h3>
+            <div class="overflow-x-auto mb-6">
+                <table class="w-full text-sm border border-slate-200 rounded-md">
+                    <thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left text-slate-600 border-b">Rol</th><th class="px-3 py-2 text-left text-slate-600 border-b">Erişim</th></tr></thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <tr><td class="px-3 py-2 font-medium">Kurucu Ortak</td><td class="px-3 py-2 text-slate-600">Tüm sistem (personel, ayarlar, loglar dahil)</td></tr>
+                        <tr><td class="px-3 py-2 font-medium">Ortak Avukat</td><td class="px-3 py-2 text-slate-600">Mali takip + raporlar dahil tüm operasyonel alanlar</td></tr>
+                        <tr><td class="px-3 py-2 font-medium">Avukat / Stajyer</td><td class="px-3 py-2 text-slate-600">Dosyalar, müvekkiller, görevler, evraklar</td></tr>
+                        <tr><td class="px-3 py-2 font-medium">Muhasebeci / Sekreter</td><td class="px-3 py-2 text-slate-600">Mali takip + temel operasyonel alanlar</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="font-semibold text-gray-custom mb-2 mt-6">Sistem Tanımları</h3>
+            <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2 mb-4">
+                <li>Profil menüsünden <strong>Tanımlamalar</strong> sayfasına git</li>
+                <li>Sol panelden bir <strong>grup</strong> seç (Dosya Türleri, Ödeme Yöntemleri vb.)</li>
+                <li>Sağ panelde o grubun değerlerini gör</li>
+                <li><strong>"+ Yeni Değer"</strong> ile yeni tanım ekle</li>
+            </ol>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800">
+                <strong>Dikkat:</strong> "Sistem" etiketli değerler korumalıdır — değer alanı değiştirilemez ve silinemez. Sadece etiket ve sıralama düzenlenebilir.
+            </div>
+        </div>
+
+        <!-- Genel İpuçları -->
+        <div id="tab-tips" class="guide-content hidden">
+            <h2 class="text-lg font-bold text-gray-custom mb-4 flex items-center gap-2">
+                <i data-lucide="lightbulb" class="w-5 h-5 text-gold-custom"></i> Genel İpuçları
+            </h2>
+
+            <div class="space-y-6">
+                <div>
+                    <h3 class="font-semibold text-gray-custom mb-2">Sayfalama</h3>
+                    <p class="text-sm text-slate-600">Listelerde 20 kayıt/sayfa gösterilir. Alt kısımdaki <strong>Önceki / Sonraki</strong> butonlarıyla gezinebilirsin. Toplam kayıt sayısı toolbar'da badge olarak görünür.</p>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold text-gray-custom mb-2">Arama</h3>
+                    <p class="text-sm text-slate-600">Arama kutusu olan sayfalarda yazmaya başladığında otomatik filtreleme çalışır. Birden fazla alana aynı anda bakar (isim, TC no, e-posta vb.).</p>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold text-gray-custom mb-2">Silme İşlemi</h3>
+                    <p class="text-sm text-slate-600">Sistemde hiçbir veri kalıcı olarak silinmez. "Sil" butonuna tıkladığında kayıt <strong>arşivlenir</strong>. Yanlışlıkla silinen veriler geri alınabilir.</p>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold text-gray-custom mb-2">Durum Renkleri</h3>
+                    <div class="flex flex-wrap gap-3 text-sm">
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Aktif / Tamamlandı / Bakiye var</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500"></span> Gecikmiş / İptal / Borç var</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-500"></span> Planlandı / Bekliyor</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500"></span> Uyarı / Ertelendi / Kısmi</span>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold text-gray-custom mb-2">Profil Menüsü</h3>
+                    <p class="text-sm text-slate-600">Sağ üst köşedeki ismine tıklayarak erişebilirsin: Kullanım Rehberi, Tanımlamalar, Sistem Ayarları, İşlem Logları, Güvenli Çıkış.</p>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold text-gray-custom mb-2">Mobil Kullanım</h3>
+                    <p class="text-sm text-slate-600">Sistem mobil cihazlarla tam uyumludur. Sol üstteki hamburger menüsüne tıklayarak tüm sayfalara erişebilirsin.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function switchTab(tabName) {
+        // Tüm içerikleri gizle
+        document.querySelectorAll('.guide-content').forEach(function(el) {
+            el.classList.add('hidden');
+        });
+        // Tüm tab butonlarından aktif sınıfı kaldır
+        document.querySelectorAll('.guide-tab').forEach(function(el) {
+            el.classList.remove('active');
+            el.className = el.className.replace(/bg-white text-gray-custom border-slate-200 shadow-sm/g, '').trim();
+            el.classList.add('text-slate-500', 'border-transparent', 'hover:text-gray-custom');
+        });
+
+        // Seçilen sekmeyi göster
+        var content = document.getElementById('tab-' + tabName);
+        if (content) content.classList.remove('hidden');
+
+        // Seçilen tab butonunu aktif yap
+        var btn = document.querySelector('[data-tab="' + tabName + '"]');
+        if (btn) {
+            btn.classList.remove('text-slate-500', 'border-transparent', 'hover:text-gray-custom');
+            btn.classList.add('bg-white', 'text-gray-custom', 'border-slate-200', 'shadow-sm');
+            btn.classList.add('active');
+        }
+
+        lucide.createIcons();
+    }
+
+    // İlk yüklemede ilk sekmeyi aktif yap
+    document.addEventListener('DOMContentLoaded', function() {
+        switchTab('dashboard');
+    });
+</script>
+{% endblock %}

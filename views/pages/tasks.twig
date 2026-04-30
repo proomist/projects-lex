@@ -1,0 +1,453 @@
+{% extends 'layouts/app.twig' %}
+
+{% block content %}
+<div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col h-full min-h-[500px]">
+    <!-- Toolbar -->
+    <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div class="flex items-center gap-2">
+            <h3 class="font-semibold text-gray-custom flex items-center gap-2">
+                <i data-lucide="check-square" class="w-5 h-5 text-gold-custom"></i>
+                İş Listesi
+            </h3>
+            <span class="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full border border-slate-200 font-medium" id="total-count">0 Kayıt</span>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <select id="statusFilter" class="border border-slate-300 rounded-md px-3 py-2 text-sm outline-none focus:border-gold-custom" onchange="loadTasks()">
+                <option value="">Tümü (Durum)</option>
+                <option value="Bekliyor">Bekliyor</option>
+                <option value="Devam Ediyor">Devam Ediyor</option>
+                <option value="Tamamlandı">Tamamlandı</option>
+                <option value="Beklemede">Beklemede</option>
+            </select>
+            <select id="priorityFilter" class="border border-slate-300 rounded-md px-3 py-2 text-sm outline-none focus:border-gold-custom" onchange="loadTasks()">
+                <option value="">Tümü (Öncelik)</option>
+            </select>
+            <button onclick="openTaskModal()" class="bg-gray-custom hover:bg-[#333] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 shadow-sm">
+                <i data-lucide="plus" class="w-4 h-4 text-gold-custom"></i> Yeni Görev
+            </button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="flex-1 overflow-auto custom-scroll relative">
+        <table class="w-full text-sm text-left">
+            <thead class="bg-slate-50 text-slate-500 font-medium sticky top-0 z-10 shadow-sm border-b border-slate-200">
+                <tr>
+                    <th class="px-5 py-3 w-10"></th>
+                    <th class="px-5 py-3">Görev / Konu</th>
+                    <th class="px-5 py-3">Dosya / Müvekkil</th>
+                    <th class="px-5 py-3">Sorumlu</th>
+                    <th class="px-5 py-3">Bitiş Tarihi</th>
+                    <th class="px-5 py-3 text-right">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody id="tasksTableBody" class="divide-y divide-slate-100">
+                <tr><td colspan="6" class="text-center py-8 text-slate-500">Yükleniyor...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="px-5 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0 rounded-b-lg">
+        <span class="text-sm text-slate-500" id="page-info">Sayfa 1 / 1</span>
+        <div class="flex gap-1">
+            <button id="prevPage" onclick="changePage(-1)" class="px-3 py-1 border border-slate-300 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors">Önceki</button>
+            <button id="nextPage" onclick="changePage(1)" class="px-3 py-1 border border-slate-300 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors">Sonraki</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Yeni/Düzenle -->
+<div id="taskModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh] transform scale-95 transition-transform duration-300" id="taskModalContent">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">
+            <h3 class="text-lg font-semibold text-gray-custom flex items-center gap-2" id="modalTitle">
+                <i data-lucide="check-square" class="w-5 h-5 text-gold-custom"></i> Yeni Görev Ekle
+            </h3>
+            <button onclick="closeTaskModal()" class="text-slate-400 hover:text-rose-500 transition-colors p-1 rounded-md hover:bg-rose-50">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto custom-scroll">
+            <div id="modalAlert" class="hidden mb-4 p-3 rounded-md text-sm font-medium"></div>
+
+            <form id="taskForm" class="space-y-5" onsubmit="event.preventDefault(); saveTask();">
+                <input type="hidden" id="task_id">
+                
+                <div class="grid grid-cols-2 gap-5">
+                    
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Görev Başlığı <span class="text-rose-500">*</span></label>
+                        <input type="text" id="title" placeholder="Örn: Bilirkişi Raporuna İtiraz" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Bağlı Dosya</label>
+                        <select id="case_id" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all bg-white">
+                            <option value="">Bağımsız Görev</option>
+                            <!-- JS ile doldurulacak -->
+                        </select>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Görev Tipi</label>
+                        <select id="task_type" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all bg-white">
+                            <option value="Dilekçe">Dilekçe</option>
+                            <option value="Toplantı">Toplantı/Görüşme</option>
+                            <option value="Araştırma">Araştırma</option>
+                            <option value="İcra İşlemi">İcra İşlemi</option>
+                            <option value="Mali İşlem">Mali İşlem</option>
+                            <option value="Diğer">Diğer</option>
+                        </select>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Sorumlu <span class="text-rose-500">*</span></label>
+                        <select id="assigned_to" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all bg-white">
+                            <option value="">Seçiniz...</option>
+                            <!-- Kullanıcılar listesi API'den çekilecek -->
+                        </select>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Son Teslim Tarihi</label>
+                        <input type="date" id="due_date" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Öncelik</label>
+                        <select id="priority" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all bg-white">
+                        </select>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Durum</label>
+                        <select id="status" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all bg-white">
+                            <option value="Bekliyor">Bekliyor</option>
+                            <option value="Devam Ediyor">Devam Ediyor</option>
+                            <option value="Tamamlandı">Tamamlandı</option>
+                            <option value="Beklemede">Beklemede</option>
+                        </select>
+                    </div>
+
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Açıklama / Detaylar</label>
+                        <textarea id="description" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all"></textarea>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-3 shrink-0 bg-slate-50 rounded-b-lg">
+            <button type="button" onclick="closeTaskModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">İptal</button>
+            <button type="button" onclick="saveTask()" id="saveBtn" class="bg-gold-custom hover:bg-[#b89e6e] text-gray-900 px-6 py-2 rounded-md text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                <i data-lucide="save" class="w-4 h-4"></i> <span id="saveBtnText">Kaydet</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let currentPage = 1;
+    const limit = 15;
+    let totalPages = 1;
+    let casesCache = [];
+    let usersCache = [];
+
+    // API İstek Aracı artık /assets/js/api.js dosyasından yükleniyor.
+
+    // Modal UI Yönetimi
+    function openTaskModal(id = null) {
+        document.getElementById('taskForm').reset();
+        document.getElementById('task_id').value = '';
+        document.getElementById('modalTitle').innerHTML = '<i data-lucide="check-square" class="w-5 h-5 text-gold-custom"></i> Yeni Görev Ekle';
+        document.getElementById('modalAlert').classList.add('hidden');
+        lucide.createIcons();
+
+        if (id) {
+            document.getElementById('modalTitle').innerHTML = '<i data-lucide="edit" class="w-5 h-5 text-gold-custom"></i> Görev Düzenle';
+            loadTaskDetails(id);
+        }
+
+        const modal = document.getElementById('taskModal');
+        const content = document.getElementById('taskModalContent');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeTaskModal() {
+        const modal = document.getElementById('taskModal');
+        const content = document.getElementById('taskModalContent');
+        modal.classList.add('opacity-0');
+        content.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 300);
+    }
+
+    function showAlert(msg, isError = true) {
+        const alertEl = document.getElementById('modalAlert');
+        alertEl.textContent = msg;
+        alertEl.className = `mb-4 p-3 rounded-md text-sm font-medium ${isError ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`;
+        alertEl.classList.remove('hidden');
+    }
+
+    // Dropdownları Yükle
+    async function loadDropdowns() {
+        // Dosyalar
+        if (casesCache.length === 0) {
+            const resCase = await apiCall('/cases?limit=1000&status=Aktif');
+            if (resCase && resCase.status === 'success') {
+                casesCache = resCase.data;
+                const select = document.getElementById('case_id');
+                select.innerHTML = '<option value="">Bağımsız Görev</option>';
+                casesCache.forEach(c => {
+                    select.innerHTML += `<option value="${c.id}">${c.case_no || c.base_no} - ${c.client_first_name || ''} ${c.client_company_name || ''}</option>`;
+                });
+            }
+        }
+        
+        // Kullanıcılar
+        if (usersCache.length === 0) {
+            const resUser = await apiCall('/users?limit=100');
+            if (resUser && resUser.status === 'success') {
+                usersCache = resUser.data;
+                const select = document.getElementById('assigned_to');
+                select.innerHTML = '<option value="">Seçiniz...</option>';
+                usersCache.forEach(u => {
+                    select.innerHTML += `<option value="${u.id}">${u.first_name} ${u.last_name} (${u.title})</option>`;
+                });
+            }
+        }
+    }
+
+    // --- API İşlemleri ---
+
+    async function loadTasks() {
+        const status = document.getElementById('statusFilter').value;
+        const priority = document.getElementById('priorityFilter').value;
+        const tbody = document.getElementById('tasksTableBody');
+        
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-500"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Yükleniyor...</td></tr>';
+        lucide.createIcons();
+
+        let query = `?page=${currentPage}&limit=${limit}`;
+        if(status) query += `&status=${encodeURIComponent(status)}`;
+        
+        const res = await apiCall('/tasks' + query);
+        
+        if (!res || res.status !== 'success') {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-rose-500">${res?.message || 'Hata oluştu'}</td></tr>`;
+            return;
+        }
+
+        let data = res.data;
+        document.getElementById('total-count').textContent = `${res.meta.total_records} Kayıt`;
+        document.getElementById('page-info').textContent = `Sayfa ${res.meta.current_page} / ${res.meta.total_pages || 1}`;
+        totalPages = res.meta.total_pages || 1;
+        
+        document.getElementById('prevPage').disabled = currentPage <= 1;
+        document.getElementById('nextPage').disabled = currentPage >= totalPages;
+
+        if (data.length === 0) {
+            tbody.innerHTML = emptyStateRow('check-square', 'Görev Bulunamadı', 'Henüz görev kaydı oluşturulmamış.', 'Yeni Görev Ekle', 'openTaskModal()', 6);
+            createLucideIcons(tbody);
+            return;
+        }
+
+        // Öncelik Filtresi (Backend destelemiyorsa JS ile)
+        if (priority) {
+            data = data.filter(t => t.priority === priority);
+        }
+
+        if (data.length === 0) {
+            tbody.innerHTML = emptyStateRow('search', 'Sonuç Bulunamadı', 'Arama kriterlerinize uygun görev bulunamadı.', null, null, 6);
+            createLucideIcons(tbody);
+            return;
+        }
+
+        tbody.innerHTML = data.map(t => {
+            
+            // Öncelik Rengi
+            let priColor = 'bg-slate-100 text-slate-600 border-slate-200';
+            if (t.priority === 'Acil') priColor = 'bg-rose-50 text-rose-700 border-rose-200';
+            else if (t.priority === 'Yüksek') priColor = 'bg-amber-50 text-amber-700 border-amber-200';
+            
+            // Durum Rengi
+            let statusColor = 'bg-slate-100 text-slate-600 border-slate-200';
+            if (t.status === 'Tamamlandı') statusColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            else if (t.status === 'Devam Ediyor') statusColor = 'bg-blue-50 text-blue-700 border-blue-200';
+
+            const checkboxIcon = t.status === 'Tamamlandı' ? 'check-square-2' : 'square';
+            const checkboxColor = t.status === 'Tamamlandı' ? 'text-emerald-500' : 'text-slate-300';
+            const textClass = t.status === 'Tamamlandı' ? 'line-through text-slate-400' : 'text-slate-800';
+
+            const dueText = t.due_date ? t.due_date.substring(0, 10) : '-';
+            const isLate = t.status !== 'Tamamlandı' && t.due_date && new Date(t.due_date) < new Date();
+
+            return `
+                <tr class="hover:bg-slate-50/50 transition-colors group">
+                    <td class="px-5 py-3 text-center cursor-pointer" onclick="toggleTaskStatus(${t.id}, '${t.status}')">
+                        <i data-lucide="${checkboxIcon}" class="w-5 h-5 ${checkboxColor} hover:text-gold-custom transition-colors"></i>
+                    </td>
+                    <td class="px-5 py-3">
+                        <div class="font-medium ${textClass}">${t.title}</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">
+                            ${t.task_type} • <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium border ${priColor}">${t.priority}</span>
+                        </div>
+                    </td>
+                    <td class="px-5 py-3 text-sm text-slate-600">
+                        ${t.case_no || '-'}
+                    </td>
+                    <td class="px-5 py-3 text-sm text-slate-600">
+                        ${t.assignee_first_name} ${t.assignee_last_name}
+                    </td>
+                    <td class="px-5 py-3">
+                        <div class="text-sm font-medium ${isLate ? 'text-rose-600' : 'text-slate-700'}">${dueText}</div>
+                        <div class="text-xs mt-0.5">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${statusColor}">
+                                ${t.status}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="px-5 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="openTaskModal(${t.id})" class="p-1.5 text-slate-400 hover:text-gold-custom hover:bg-gold-custom/10 rounded transition-colors" title="Düzenle">
+                                <i data-lucide="edit" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteTask(${t.id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors" title="Sil">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+        lucide.createIcons();
+    }
+
+    function changePage(delta) {
+        const newPage = currentPage + delta;
+        if (newPage >= 1 && newPage <= totalPages) {
+            currentPage = newPage;
+            loadTasks();
+        }
+    }
+
+    async function toggleTaskStatus(id, currentStatus) {
+        const newStatus = currentStatus === 'Tamamlandı' ? 'Devam Ediyor' : 'Tamamlandı';
+        
+        // Kısmi (Sadece status) update göndereceğiz, API destekliyorsa.
+        const res = await apiCall(`/tasks/${id}`, 'PUT', { status: newStatus });
+        if (!res || res.status !== 'success') {
+            showToast('Hata: ' + (res?.message || 'Durum güncellenemedi.'), 'error');
+        } else {
+            loadTasks();
+        }
+    }
+
+    async function loadTaskDetails(id) {
+        const res = await apiCall(`/tasks/${id}`);
+        if (!res || res.status !== 'success') {
+            showAlert('Görev bilgileri alınamadı.');
+            return;
+        }
+
+        const t = res.data;
+        document.getElementById('task_id').value = t.id;
+        document.getElementById('title').value = t.title || '';
+        document.getElementById('case_id').value = t.case_id || '';
+        document.getElementById('task_type').value = t.task_type || 'Diğer';
+        document.getElementById('assigned_to').value = t.assigned_to || '';
+        
+        if (t.due_date) {
+            document.getElementById('due_date').value = t.due_date.substring(0, 10);
+        }
+        
+        await populateSelect('priority', 'task_priorities', t.priority || 'Normal');
+        document.getElementById('status').value = t.status || 'Bekliyor';
+        document.getElementById('description').value = t.description || '';
+    }
+
+    async function saveTask() {
+        const id = document.getElementById('task_id').value;
+        const btn = document.getElementById('saveBtn');
+        const btnText = document.getElementById('saveBtnText');
+
+        const title = document.getElementById('title').value;
+        const assignedTo = document.getElementById('assigned_to').value;
+        const taskType = document.getElementById('task_type').value;
+
+        if (!title) return showAlert('Görev başlığı zorunludur.');
+        if (!assignedTo) return showAlert('Sorumlu seçimi zorunludur.');
+        if (!taskType) return showAlert('Görev tipi zorunludur.');
+
+        const payload = {
+            title: title,
+            task_type: taskType,
+            assigned_to: parseInt(assignedTo),
+            case_id: document.getElementById('case_id').value ? parseInt(document.getElementById('case_id').value) : null,
+            due_date: document.getElementById('due_date').value || null,
+            priority: document.getElementById('priority').value,
+            status: document.getElementById('status').value,
+            description: document.getElementById('description').value,
+        };
+
+        btn.disabled = true;
+        btnText.textContent = 'Kaydediliyor...';
+        document.getElementById('modalAlert').classList.add('hidden');
+
+        const endpoint = id ? `/tasks/${id}` : '/tasks';
+        const method = id ? 'PUT' : 'POST';
+
+        const res = await apiCall(endpoint, method, payload);
+        
+        btn.disabled = false;
+        btnText.textContent = 'Kaydet';
+
+        if (!res || res.status !== 'success') {
+            showAlert(res?.message || 'Bir hata oluştu.', true);
+        } else {
+            showAlert('Başarıyla kaydedildi.', false);
+            setTimeout(() => {
+                closeTaskModal();
+                loadTasks();
+            }, 1000);
+        }
+    }
+
+    async function deleteTask(id) {
+        const confirmed = await showConfirm(
+            'Görevi Sil',
+            'Bu görevi silmek istediğinize emin misiniz?',
+            'Evet, Sil'
+        );
+        if (!confirmed) return;
+        
+        const res = await apiCall(`/tasks/${id}`, 'DELETE');
+        if (!res || res.status !== 'success') {
+            showToast('Hata: ' + (res?.message || 'İşlem başarısız.'), 'error');
+        } else {
+            loadTasks();
+        }
+    }
+
+    // İlk yükleme
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadDropdowns();
+        await populateSelect('priority', 'task_priorities', 'Normal');
+        await populateFilterSelect('priorityFilter', 'task_priorities', 'Tümü (Öncelik)');
+        loadTasks();
+    });
+</script>
+{% endblock %}

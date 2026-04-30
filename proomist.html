@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proomist | Teknoloji Entegrasyonu Sürüyor - Technology Integration Underway</title>
+    <meta name="copyright" content="Copyright 2017-2025. Proomist Governance Consultancy. All rights reserved.">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #1a1a1a;
+            color: #e8e4de;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Subtle grain texture */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            opacity: 0.025;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Ambient glow */
+        .ambient {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .ambient.top-left {
+            width: 500px;
+            height: 500px;
+            top: -200px;
+            left: -150px;
+            background: rgba(207, 180, 129, 0.06);
+        }
+
+        .ambient.bottom-right {
+            width: 400px;
+            height: 400px;
+            bottom: -150px;
+            right: -100px;
+            background: rgba(207, 180, 129, 0.04);
+        }
+
+        .wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 560px;
+            padding: 24px;
+        }
+
+        .card {
+            background: rgba(40, 40, 40, 0.7);
+            border: 1px solid rgba(207, 180, 129, 0.12);
+            border-radius: 16px;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            padding: 48px 44px;
+            text-align: center;
+            animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Logo */
+        .logo {
+            display: block;
+            width: 260px;
+            height: auto;
+            margin: 0 auto 32px;
+            opacity: 0.92;
+            filter: drop-shadow(0 2px 12px rgba(207, 180, 129, 0.08));
+        }
+
+        h1 {
+            display: none;
+        }
+
+        .tagline {
+            font-size: 13px;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+            color: #cfb481;
+            margin-bottom: 28px;
+        }
+
+        .message {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #a8a29e;
+            font-weight: 300;
+            margin-bottom: 6px;
+        }
+
+        .message-en {
+            font-size: 12px;
+            line-height: 1.7;
+            color: #6b6560;
+            font-weight: 300;
+            margin-bottom: 32px;
+        }
+
+        /* Progress indicator */
+        .progress-track {
+            width: 120px;
+            height: 2px;
+            background: rgba(207, 180, 129, 0.1);
+            border-radius: 2px;
+            margin: 0 auto 36px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-track::after {
+            content: '';
+            position: absolute;
+            width: 40%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, #cfb481, transparent);
+            border-radius: 2px;
+            animation: progress 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes progress {
+            0% {
+                left: -40%;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+
+        /* Footer */
+        .footer {
+            padding-top: 24px;
+            border-top: 1px solid rgba(207, 180, 129, 0.08);
+        }
+
+        .footer p {
+            font-size: 12px;
+            color: #57534e;
+            font-weight: 400;
+            line-height: 1.8;
+        }
+
+        .footer a {
+            color: #cfb481;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .footer a:hover {
+            color: #e0cfa0;
+        }
+
+        .footer .social {
+            margin-top: 8px;
+        }
+
+        .footer .social a {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            color: #78716c;
+            transition: color 0.2s ease;
+        }
+
+        .footer .social a:hover {
+            color: #cfb481;
+        }
+
+        .footer .social a svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .card {
+                padding: 36px 28px;
+            }
+
+            .message {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient top-left"></div>
+    <div class="ambient bottom-right"></div>
+
+    <div class="wrapper">
+        <div class="card">
+            <img src="fingerprint.svg" alt="Proomist" class="logo">
+
+            <p class="message">
+                Teknoloji altyapınız titizlikle inşa ediliyor.<br>
+                Her detay, kurumsal yönetişim standartlarınıza uygun olarak şekilleniyor.
+            </p>
+
+            <p class="message-en">
+                Your technology infrastructure is being meticulously built.<br>
+                Every detail is shaped to meet your governance standards.
+            </p>
+
+            <div class="progress-track"></div>
+
+            <div class="footer">
+                <p>&copy; 2025 <a href="https://proomist.com" target="_blank">Proomist Governance Consultancy</a></p>
+                <div class="social">
+                    <a href="https://x.com/proomist" target="_blank">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                        </svg>
+                        X
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

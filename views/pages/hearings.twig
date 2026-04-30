@@ -1,0 +1,364 @@
+{% extends 'layouts/app.twig' %}
+
+{% block content %}
+<div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col h-full min-h-[500px]">
+    <!-- Toolbar -->
+    <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div class="flex items-center gap-2">
+            <h3 class="font-semibold text-gray-custom flex items-center gap-2">
+                <i data-lucide="gavel" class="w-5 h-5 text-gold-custom"></i>
+                Duruşma Takvimi
+            </h3>
+            <span class="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full border border-slate-200 font-medium" id="total-count">0 Kayıt</span>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <input type="date" id="dateFilter" class="border border-slate-300 rounded-md px-3 py-2 text-sm outline-none focus:border-gold-custom" onchange="loadHearings()">
+            <select id="statusFilter" class="border border-slate-300 rounded-md px-3 py-2 text-sm outline-none focus:border-gold-custom" onchange="loadHearings()">
+                <option value="">Tümü (Durum)</option>
+                <option value="Planlandı">Planlandı</option>
+                <option value="Tamamlandı">Tamamlandı</option>
+                <option value="Ertelendi">Ertelendi</option>
+                <option value="İptal">İptal</option>
+            </select>
+            <button onclick="openHearingModal()" class="bg-gray-custom hover:bg-[#333] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 shadow-sm">
+                <i data-lucide="plus" class="w-4 h-4 text-gold-custom"></i> Yeni Duruşma
+            </button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="flex-1 overflow-auto custom-scroll relative">
+        <table class="w-full text-sm text-left">
+            <thead class="bg-slate-50 text-slate-500 font-medium sticky top-0 z-10 shadow-sm border-b border-slate-200">
+                <tr>
+                    <th class="px-5 py-3">Tarih / Saat</th>
+                    <th class="px-5 py-3">Dosya / Mahkeme</th>
+                    <th class="px-5 py-3">Açıklama / Not</th>
+                    <th class="px-5 py-3">Durum</th>
+                    <th class="px-5 py-3 text-right">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody id="hearingsTableBody" class="divide-y divide-slate-100">
+                <tr><td colspan="5" class="text-center py-8 text-slate-500">Yükleniyor...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="px-5 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0 rounded-b-lg">
+        <span class="text-sm text-slate-500" id="page-info">Sayfa 1 / 1</span>
+        <div class="flex gap-1">
+            <button id="prevPage" onclick="changePage(-1)" class="px-3 py-1 border border-slate-300 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors">Önceki</button>
+            <button id="nextPage" onclick="changePage(1)" class="px-3 py-1 border border-slate-300 rounded bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-colors">Sonraki</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Yeni/Düzenle -->
+<div id="hearingModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-xl flex flex-col max-h-[90vh] transform scale-95 transition-transform duration-300" id="hearingModalContent">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">
+            <h3 class="text-lg font-semibold text-gray-custom flex items-center gap-2" id="modalTitle">
+                <i data-lucide="gavel" class="w-5 h-5 text-gold-custom"></i> Yeni Duruşma Ekle
+            </h3>
+            <button onclick="closeHearingModal()" class="text-slate-400 hover:text-rose-500 transition-colors p-1 rounded-md hover:bg-rose-50">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto custom-scroll">
+            <div id="modalAlert" class="hidden mb-4 p-3 rounded-md text-sm font-medium"></div>
+
+            <form id="hearingForm" class="space-y-5" onsubmit="event.preventDefault(); saveHearing();">
+                <input type="hidden" id="hearing_id">
+                
+                <div class="grid grid-cols-2 gap-5">
+                    
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Dosya <span class="text-rose-500">*</span></label>
+                        <select id="case_id" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all bg-white">
+                            <option value="">Seçiniz...</option>
+                            <!-- JS ile doldurulacak -->
+                        </select>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Duruşma Tarihi <span class="text-rose-500">*</span></label>
+                        <input type="date" id="hearing_date" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Saat <span class="text-rose-500">*</span></label>
+                        <input type="time" id="hearing_time" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all">
+                    </div>
+                    
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Açıklama / Not</label>
+                        <textarea id="description" rows="3" placeholder="Duruşmaya dair özel notlar, tanıklar vs." class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all"></textarea>
+                    </div>
+
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Durum</label>
+                        <select id="status" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:border-gold-custom focus:ring-1 focus:ring-gold-custom transition-all bg-white">
+                            <option value="Planlandı">Planlandı</option>
+                            <option value="Tamamlandı">Tamamlandı</option>
+                            <option value="Ertelendi">Ertelendi</option>
+                            <option value="İptal">İptal</option>
+                        </select>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-3 shrink-0 bg-slate-50 rounded-b-lg">
+            <button type="button" onclick="closeHearingModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">İptal</button>
+            <button type="button" onclick="saveHearing()" id="saveBtn" class="bg-gold-custom hover:bg-[#b89e6e] text-gray-900 px-6 py-2 rounded-md text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                <i data-lucide="save" class="w-4 h-4"></i> <span id="saveBtnText">Kaydet</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let currentPage = 1;
+    const limit = 20;
+    let totalPages = 1;
+    let casesCache = [];
+
+    // API İstek Aracı artık /assets/js/api.js dosyasından yükleniyor.
+
+    // Modal UI Yönetimi
+    function openHearingModal(id = null) {
+        document.getElementById('hearingForm').reset();
+        document.getElementById('hearing_id').value = '';
+        document.getElementById('modalTitle').innerHTML = '<i data-lucide="gavel" class="w-5 h-5 text-gold-custom"></i> Yeni Duruşma Ekle';
+        document.getElementById('modalAlert').classList.add('hidden');
+        lucide.createIcons();
+
+        if (id) {
+            document.getElementById('modalTitle').innerHTML = '<i data-lucide="edit" class="w-5 h-5 text-gold-custom"></i> Duruşma Düzenle';
+            loadHearingDetails(id);
+        }
+
+        const modal = document.getElementById('hearingModal');
+        const content = document.getElementById('hearingModalContent');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeHearingModal() {
+        const modal = document.getElementById('hearingModal');
+        const content = document.getElementById('hearingModalContent');
+        modal.classList.add('opacity-0');
+        content.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 300);
+    }
+
+    function showAlert(msg, isError = true) {
+        const alertEl = document.getElementById('modalAlert');
+        alertEl.textContent = msg;
+        alertEl.className = `mb-4 p-3 rounded-md text-sm font-medium ${isError ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`;
+        alertEl.classList.remove('hidden');
+    }
+
+    // Dosyaları Dropdown için Yükle
+    async function loadCasesForDropdown() {
+        if (casesCache.length > 0) return;
+        
+        const res = await apiCall('/cases?limit=1000&status=Aktif');
+        if (res && res.status === 'success') {
+            casesCache = res.data;
+            const select = document.getElementById('case_id');
+            select.innerHTML = '<option value="">Seçiniz...</option>';
+            
+            casesCache.forEach(c => {
+                const clientName = c.client_company_name
+                    ? c.client_company_name
+                    : ((c.client_first_name || '') + ' ' + (c.client_last_name || '')).trim();
+                select.innerHTML += `<option value="${c.id}">${escapeHtml(c.case_no)} - ${escapeHtml(clientName)}</option>`;
+            });
+        }
+    }
+
+    // --- API İşlemleri ---
+
+    async function loadHearings() {
+        const date = document.getElementById('dateFilter').value;
+        const status = document.getElementById('statusFilter').value;
+        const tbody = document.getElementById('hearingsTableBody');
+        
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-500"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2"></i> Yükleniyor...</td></tr>';
+        lucide.createIcons();
+
+        // Sayfalama ve filtre parametreleri
+        let query = `?page=${currentPage}&limit=${limit}`;
+        if (status) query += `&status=${status}`;
+        if (date) query += `&date=${date}`;
+        
+        const res = await apiCall('/hearings' + query);
+        
+        if (!res || res.status !== 'success') {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-rose-500">Duruşmalar yüklenirken bir hata oluştu.</td></tr>';
+            return;
+        }
+
+        // Eğer backend /cases/0/hearings üzerinden tümünü dönüyorsa:
+        let data = res.data || [];
+        document.getElementById('total-count').textContent = `${res.meta?.total_records || 0} Kayıt`;
+        document.getElementById('page-info').textContent = `Sayfa ${res.meta?.current_page || 1} / ${res.meta?.total_pages || 1}`;
+        totalPages = res.meta?.total_pages || 1;
+        
+        document.getElementById('prevPage').disabled = currentPage <= 1;
+        document.getElementById('nextPage').disabled = currentPage >= totalPages;
+
+        if (data.length === 0) {
+            tbody.innerHTML = emptyStateRow('gavel', 'Duruşma Bulunamadı', 'Henüz duruşma kaydı bulunmuyor.', 'Yeni Duruşma Ekle', 'openHearingModal()', 5);
+            createLucideIcons(tbody);
+            return;
+        }
+
+        tbody.innerHTML = data.map(h => {
+            let statusColor = 'bg-slate-100 text-slate-600 border-slate-200';
+            if (h.status === 'Planlandı') statusColor = 'bg-blue-50 text-blue-700 border-blue-200';
+            else if (h.status === 'Tamamlandı') statusColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            else if (h.status === 'Ertelendi') statusColor = 'bg-amber-50 text-amber-700 border-amber-200';
+            else if (h.status === 'İptal') statusColor = 'bg-rose-50 text-rose-700 border-rose-200';
+
+            return `
+                <tr class="hover:bg-slate-50/50 transition-colors group">
+                    <td class="px-5 py-3">
+                        <div class="font-medium ${new Date(h.hearing_date) < new Date() ? 'text-rose-600' : 'text-slate-800'}">${h.hearing_date.split(' ')[0]}</div>
+                        <div class="text-xs text-slate-500 mt-0.5">${h.hearing_date.split(' ')[1] || '00:00'}</div>
+                    </td>
+                    <td class="px-5 py-3">
+                        <div class="text-sm font-medium text-gray-custom">Dosya: ${escapeHtml(h.case_no || h.case_id)}</div>
+                    </td>
+                    <td class="px-5 py-3 text-sm text-slate-600 truncate max-w-[200px]" title="${escapeHtml(h.description)}">${escapeHtml(h.description || '-')}</td>
+                    <td class="px-5 py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${statusColor}">
+                            ${h.status}
+                        </span>
+                    </td>
+                    <td class="px-5 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="openHearingModal(${h.id})" class="p-1.5 text-slate-400 hover:text-gold-custom hover:bg-gold-custom/10 rounded transition-colors" title="Düzenle">
+                                <i data-lucide="edit" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteHearing(${h.id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors" title="Sil">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+        lucide.createIcons();
+    }
+
+    function changePage(delta) {
+        const newPage = currentPage + delta;
+        if (newPage >= 1 && newPage <= totalPages) {
+            currentPage = newPage;
+            loadHearings();
+        }
+    }
+
+    async function loadHearingDetails(id) {
+        const res = await apiCall(`/hearings/${id}`);
+        if (!res || res.status !== 'success') {
+            showAlert('Duruşma bilgileri alınamadı.');
+            return;
+        }
+
+        const h = res.data;
+        document.getElementById('hearing_id').value = h.id;
+        document.getElementById('case_id').value = h.case_id;
+        
+        if (h.hearing_date) {
+            const parts = h.hearing_date.split(' ');
+            document.getElementById('hearing_date').value = parts[0];
+            document.getElementById('hearing_time').value = parts[1] ? parts[1].substring(0, 5) : '';
+        }
+        
+        document.getElementById('description').value = h.description || '';
+        document.getElementById('status').value = h.status || 'Planlandı';
+    }
+
+    async function saveHearing() {
+        const id = document.getElementById('hearing_id').value;
+        const btn = document.getElementById('saveBtn');
+        const btnText = document.getElementById('saveBtnText');
+
+        const caseId = document.getElementById('case_id').value;
+        const hDate = document.getElementById('hearing_date').value;
+        const hTime = document.getElementById('hearing_time').value;
+
+        if (!caseId) return showAlert('Lütfen bir dosya seçiniz.');
+        if (!hDate) return showAlert('Duruşma tarihi zorunludur.');
+
+        const fullDate = `${hDate} ${hTime || '00:00'}:00`;
+
+        const payload = {
+            hearing_date: fullDate,
+            description: document.getElementById('description').value,
+            status: document.getElementById('status').value,
+        };
+
+        btn.disabled = true;
+        btnText.textContent = 'Kaydediliyor...';
+        document.getElementById('modalAlert').classList.add('hidden');
+
+        // Yeni oluştururken caseId URL'de gerekli
+        const endpoint = id ? `/hearings/${id}` : `/cases/${caseId}/hearings`;
+        const method = id ? 'PUT' : 'POST';
+
+        const res = await apiCall(endpoint, method, payload);
+        
+        btn.disabled = false;
+        btnText.textContent = 'Kaydet';
+
+        if (!res || res.status !== 'success') {
+            showAlert(res?.message || 'Bir hata oluştu.', true);
+        } else {
+            showAlert('Başarıyla kaydedildi.', false);
+            setTimeout(() => {
+                closeHearingModal();
+                loadHearings();
+            }, 1000);
+        }
+    }
+
+    async function deleteHearing(id) {
+        const confirmed = await showConfirm(
+            'Duruşmayı Sil',
+            'Bu duruşmayı silmek istediğinize emin misiniz?',
+            'Evet, Sil'
+        );
+        if (!confirmed) return;
+        
+        const res = await apiCall(`/hearings/${id}`, 'DELETE');
+        if (!res || res.status !== 'success') {
+            showToast('Hata: ' + (res?.message || 'İşlem başarısız.'), 'error');
+        } else {
+            loadHearings();
+        }
+    }
+
+    // İlk yükleme
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadCasesForDropdown();
+        loadHearings();
+    });
+</script>
+{% endblock %}

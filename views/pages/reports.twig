@@ -1,0 +1,343 @@
+{% extends 'layouts/app.twig' %}
+
+{% block content %}
+<div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col h-full min-h-[500px]">
+    <!-- Toolbar -->
+    <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div class="flex items-center gap-2">
+            <h3 class="font-semibold text-gray-custom flex items-center gap-2">
+                <i data-lucide="bar-chart-3" class="w-5 h-5 text-gold-custom"></i>
+                Sistem Raporları
+            </h3>
+            <span class="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full border border-slate-200 font-medium" id="filterInfo">Tum zamanlar</span>
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+            <div class="flex items-center gap-1">
+                <input type="date" id="dateFrom" class="border border-slate-300 rounded-md px-2 py-2 text-sm outline-none focus:border-gold-custom w-[140px]" title="Baslangic Tarihi">
+                <span class="text-slate-400 text-xs">-</span>
+                <input type="date" id="dateTo" class="border border-slate-300 rounded-md px-2 py-2 text-sm outline-none focus:border-gold-custom w-[140px]" title="Bitis Tarihi">
+            </div>
+            <button onclick="loadReports()" class="bg-gray-custom hover:bg-[#333] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 shadow-sm">
+                <i data-lucide="filter" class="w-4 h-4 text-gold-custom"></i> Filtrele
+            </button>
+            <button onclick="clearDateFilters()" class="p-2 text-slate-400 hover:text-rose-500 transition-colors rounded-md hover:bg-rose-50" title="Tarih Filtresini Temizle">
+                <i data-lucide="x-circle" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-auto custom-scroll relative p-5 space-y-6">
+
+        <!-- Ozet Kartlari -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+            <!-- Dosyalar -->
+            <div class="bg-white rounded-lg border border-slate-200 p-5 shadow-sm relative overflow-hidden group">
+                <div class="absolute right-0 top-0 w-20 h-20 bg-gray-custom/5 rounded-bl-full group-hover:bg-gold-custom/10 transition-colors"></div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-9 h-9 rounded-md bg-gray-custom/5 flex items-center justify-center text-gray-custom border border-gray-custom/10">
+                        <i data-lucide="folder-open" class="w-4.5 h-4.5"></i>
+                    </div>
+                    <h4 class="text-sm font-semibold text-gray-custom">Dosya İstatistikleri</h4>
+                </div>
+                <div id="casesReport" class="space-y-2.5">
+                    <div class="text-center py-6 text-slate-400 text-sm"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Yukleniyor...</div>
+                </div>
+            </div>
+
+            <!-- Gorevler -->
+            <div class="bg-white rounded-lg border border-slate-200 p-5 shadow-sm relative overflow-hidden group">
+                <div class="absolute right-0 top-0 w-20 h-20 bg-gold-custom/5 rounded-bl-full group-hover:bg-gold-custom/20 transition-colors"></div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-9 h-9 rounded-md bg-gold-custom/10 flex items-center justify-center text-gold-custom border border-gold-custom/20">
+                        <i data-lucide="check-square" class="w-4.5 h-4.5"></i>
+                    </div>
+                    <h4 class="text-sm font-semibold text-gray-custom">Görev Durumları</h4>
+                </div>
+                <div id="tasksReport" class="space-y-2.5">
+                    <div class="text-center py-6 text-slate-400 text-sm"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Yukleniyor...</div>
+                </div>
+            </div>
+
+            <!-- Finans Ozet -->
+            <div class="bg-gray-custom rounded-lg border border-[#3c3c3c] p-5 shadow-md relative overflow-hidden group">
+                <div class="absolute right-0 top-0 w-20 h-20 bg-gold-custom/10 rounded-bl-full group-hover:bg-gold-custom/20 transition-colors"></div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-9 h-9 rounded-md bg-gold-custom/20 flex items-center justify-center text-gold-custom border border-gold-custom/30">
+                        <i data-lucide="wallet" class="w-4.5 h-4.5"></i>
+                    </div>
+                    <h4 class="text-sm font-semibold text-gray-300">Finansal Özet</h4>
+                </div>
+                <div id="financialReport" class="space-y-2.5">
+                    <div class="text-center py-6 text-gray-500 text-sm"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Yukleniyor...</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Kategori Bazli Finansal Detay -->
+        <div class="bg-white rounded-lg border border-slate-200 p-5 shadow-sm relative overflow-hidden">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-9 h-9 rounded-md bg-gold-custom/10 flex items-center justify-center text-gold-custom border border-gold-custom/20">
+                    <i data-lucide="pie-chart" class="w-4.5 h-4.5"></i>
+                </div>
+                <h4 class="text-sm font-semibold text-gray-custom">Kategori Bazlı Finansal Analiz</h4>
+            </div>
+            <div id="categoryReport">
+                <div class="text-center py-6 text-slate-400 text-sm"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2"></i> Yukleniyor...</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        loadReports();
+    });
+
+    function clearDateFilters() {
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
+        loadReports();
+    }
+
+    async function loadReports() {
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+        let query = '';
+        const params = [];
+        if (dateFrom) params.push(`date_from=${dateFrom}`);
+        if (dateTo) params.push(`date_to=${dateTo}`);
+        if (params.length) query = '?' + params.join('&');
+
+        const filterInfo = document.getElementById('filterInfo');
+        if (dateFrom || dateTo) {
+            const parts = [];
+            if (dateFrom) parts.push(new Date(dateFrom).toLocaleDateString('tr-TR'));
+            if (dateTo) parts.push(new Date(dateTo).toLocaleDateString('tr-TR'));
+            filterInfo.textContent = parts.join(' \u2013 ');
+        } else {
+            filterInfo.textContent = 'T\u00fcm zamanlar';
+        }
+
+        try {
+            const response = await apiCall('/reports/summary' + query);
+
+            if (response && response.status === 'success') {
+                const data = response.data;
+                renderCasesReport(data.cases || []);
+                renderTasksReport(data.tasks || []);
+                renderFinancialReport(data.financials || []);
+                renderCategoryReport(data.financial_categories || []);
+            } else {
+                showError('Rapor verileri al\u0131namad\u0131.');
+            }
+        } catch (error) {
+            console.error('Raporlar y\u00fcklenemedi:', error);
+            showError('Ba\u011flant\u0131 hatas\u0131 olu\u015ftu.');
+        }
+    }
+
+    function renderCasesReport(cases) {
+        const container = document.getElementById('casesReport');
+        if (cases.length === 0) {
+            container.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">Veri bulunamad\u0131.</p>';
+            return;
+        }
+
+        let html = '';
+        let total = 0;
+        cases.forEach(item => {
+            total += parseInt(item.count);
+            html += `
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-slate-600">${escapeHtml(item.status)}</span>
+                    <span class="font-medium bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${item.count}</span>
+                </div>
+            `;
+        });
+
+        html += `
+            <div class="mt-3 pt-3 border-t border-slate-100 flex justify-between items-center font-semibold">
+                <span class="text-gray-custom">Toplam Dosya</span>
+                <span class="text-gray-custom">${total}</span>
+            </div>
+        `;
+        container.innerHTML = html;
+    }
+
+    function renderTasksReport(tasks) {
+        const container = document.getElementById('tasksReport');
+        if (tasks.length === 0) {
+            container.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">Veri bulunamad\u0131.</p>';
+            return;
+        }
+
+        let html = '';
+        let total = 0;
+        tasks.forEach(item => {
+            total += parseInt(item.count);
+            html += `
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-slate-600">${escapeHtml(item.status)}</span>
+                    <span class="font-medium bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${item.count}</span>
+                </div>
+            `;
+        });
+
+        html += `
+            <div class="mt-3 pt-3 border-t border-slate-100 flex justify-between items-center font-semibold">
+                <span class="text-gray-custom">Toplam G\u00f6rev</span>
+                <span class="text-gold-custom">${total}</span>
+            </div>
+        `;
+        container.innerHTML = html;
+    }
+
+    function renderFinancialReport(financials) {
+        const container = document.getElementById('financialReport');
+        if (financials.length === 0) {
+            container.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">Veri bulunamad\u0131.</p>';
+            return;
+        }
+
+        // 5 grupluk hesaplama
+        let feeCollection = 0, trustDeposit = 0, clientExpense = 0, officeExpense = 0, receivable = 0;
+
+        financials.forEach(item => {
+            const amount = parseFloat(item.total_amount) || 0;
+            if (item.transaction_type === 'Tahsilat' && item.sub_type === 'ucret') feeCollection += amount;
+            else if (item.transaction_type === 'Tahsilat' && item.sub_type === 'emanet') trustDeposit += amount;
+            else if (item.transaction_type === 'Gider' && item.sub_type === 'masraf') clientExpense += amount;
+            else if (item.transaction_type === 'Gider' && item.sub_type === 'genel') officeExpense += amount;
+            else if (item.transaction_type === 'Alacak') receivable += amount;
+        });
+
+        const profit = feeCollection - officeExpense;
+        const trustBalance = trustDeposit - clientExpense;
+
+        container.innerHTML = `
+            <div class="flex justify-between items-center text-sm mb-2.5">
+                <span class="text-gray-400 flex items-center gap-2"><i data-lucide="arrow-down-left" class="w-3 h-3 text-emerald-400"></i> \u00dccret Tahsilat\u0131</span>
+                <span class="font-medium text-emerald-400">${formatCurrency(feeCollection)}</span>
+            </div>
+            <div class="flex justify-between items-center text-sm mb-2.5">
+                <span class="text-gray-400 flex items-center gap-2"><i data-lucide="piggy-bank" class="w-3 h-3 text-teal-400"></i> Emanet Giri\u015fi</span>
+                <span class="font-medium text-teal-400">${formatCurrency(trustDeposit)}</span>
+            </div>
+            <div class="flex justify-between items-center text-sm mb-2.5">
+                <span class="text-gray-400 flex items-center gap-2"><i data-lucide="receipt" class="w-3 h-3 text-amber-400"></i> M\u00fcvekkil Masraf\u0131</span>
+                <span class="font-medium text-amber-400">${formatCurrency(clientExpense)}</span>
+            </div>
+            <div class="flex justify-between items-center text-sm mb-2.5">
+                <span class="text-gray-400 flex items-center gap-2"><i data-lucide="building" class="w-3 h-3 text-rose-400"></i> B\u00fcro Gideri</span>
+                <span class="font-medium text-rose-400">${formatCurrency(officeExpense)}</span>
+            </div>
+            <div class="flex justify-between items-center text-sm mb-2.5">
+                <span class="text-gray-400 flex items-center gap-2"><i data-lucide="clock" class="w-3 h-3 text-blue-400"></i> Bekleyen Alacak</span>
+                <span class="font-medium text-blue-400">${formatCurrency(receivable)}</span>
+            </div>
+            <div class="mt-3 pt-3 border-t border-[#3c3c3c] space-y-2">
+                <div class="flex justify-between items-center font-semibold">
+                    <span class="text-gray-300">K\u00e2r (\u00dccret - B\u00fcro Gideri)</span>
+                    <span class="${profit >= 0 ? 'text-gold-custom' : 'text-rose-400'}">${formatCurrency(profit)}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-400">Emanet Kasas\u0131 (Emanet - Masraf)</span>
+                    <span class="font-medium ${trustBalance >= 0 ? 'text-teal-400' : 'text-rose-400'}">${formatCurrency(trustBalance)}</span>
+                </div>
+            </div>
+        `;
+
+        lucide.createIcons();
+    }
+
+    function renderCategoryReport(categories) {
+        const container = document.getElementById('categoryReport');
+        if (categories.length === 0) {
+            container.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">Kategori verisi bulunamad\u0131.</p>';
+            return;
+        }
+
+        // 5 gruba ayır: transaction_type + sub_type kombinasyonu
+        const groups = {};
+        categories.forEach(item => {
+            const key = item.sub_type ? `${item.transaction_type}|${item.sub_type}` : item.transaction_type;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(item);
+        });
+
+        const groupMeta = {
+            'Tahsilat|ucret': { label: '\u00dccret Tahsilatlar\u0131', color: 'emerald', icon: 'arrow-down-left' },
+            'Tahsilat|emanet': { label: 'Emanet Giri\u015fleri', color: 'teal', icon: 'piggy-bank' },
+            'Gider|masraf': { label: 'M\u00fcvekkil Masraflar\u0131', color: 'amber', icon: 'receipt' },
+            'Gider|genel': { label: 'B\u00fcro Giderleri', color: 'rose', icon: 'building' },
+            'Alacak': { label: 'Alacaklar (Bekleyen)', color: 'blue', icon: 'clock' }
+        };
+
+        const order = ['Tahsilat|ucret', 'Tahsilat|emanet', 'Gider|masraf', 'Gider|genel', 'Alacak'];
+
+        // Mevcut grupları filtrele (boş olmayanlar)
+        const activeGroups = order.filter(key => groups[key] && groups[key].length > 0);
+
+        // Grid boyutunu belirle
+        const gridCols = activeGroups.length <= 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-5';
+        let html = `<div class="grid grid-cols-1 md:grid-cols-2 ${gridCols} gap-6">`;
+
+        activeGroups.forEach(key => {
+            const items = groups[key] || [];
+            const meta = groupMeta[key] || { label: key, color: 'slate', icon: 'circle' };
+            const typeTotal = items.reduce((sum, i) => sum + parseFloat(i.total_amount), 0);
+            const maxAmount = items.length ? Math.max(...items.map(i => parseFloat(i.total_amount))) : 1;
+
+            html += `
+                <div>
+                    <div class="flex items-center gap-2 mb-3">
+                        <i data-lucide="${meta.icon}" class="w-4 h-4 text-${meta.color}-500"></i>
+                        <h4 class="font-semibold text-sm text-gray-custom">${meta.label}</h4>
+                        <span class="ml-auto text-sm font-bold text-${meta.color}-600">${formatCurrency(typeTotal)}</span>
+                    </div>
+            `;
+
+            items.forEach(item => {
+                const amount = parseFloat(item.total_amount);
+                const pct = maxAmount > 0 ? Math.round((amount / maxAmount) * 100) : 0;
+                html += `
+                    <div class="mb-2">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-600">${escapeHtml(item.category)} <span class="text-slate-400">(${item.count})</span></span>
+                            <span class="font-medium text-slate-700">${formatCurrency(amount)}</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5">
+                            <div class="bg-${meta.color}-400 h-1.5 rounded-full transition-all" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+        lucide.createIcons();
+    }
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
+    }
+
+    function showError(message) {
+        const errorHtml = `<p class="text-sm text-rose-500 text-center py-4">${escapeHtml(message)}</p>`;
+        document.getElementById('casesReport').innerHTML = errorHtml;
+        document.getElementById('tasksReport').innerHTML = errorHtml;
+        document.getElementById('financialReport').innerHTML = errorHtml;
+        document.getElementById('categoryReport').innerHTML = errorHtml;
+    }
+</script>
+{% endblock %}

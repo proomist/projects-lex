@@ -1,0 +1,64 @@
+# Composer
+/vendor/
+composer.phar
+
+# macOS / OS X
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# IDE ve Editörler
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.phpstorm.meta.php
+.php_cs.cache
+
+# AI ve asistan araçları
+.claude/
+.windsurf/
+.gemini/
+.antigravityignore
+
+# Çevre değişkenleri (Environment)
+.env
+.env.*
+!.env-
+!.env.example
+
+# Veritabanı ve Dump dosyaları
+*.sqlite
+*.sqlite3
+*.db
+database.sqlite
+*.sql
+
+# Loglar ve Cache
+logs/
+*.log
+/storage/logs/*
+/storage/cache/*
+/storage/uploads/*
+!/storage/logs/.gitkeep
+!/storage/cache/.gitkeep
+!/storage/uploads/.gitkeep
+
+# Test Raporları
+/coverage/
+phpunit.result.cache

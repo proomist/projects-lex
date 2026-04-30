@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Cari Hesap Mutabakat Formu</title>
+    <style>
+        @page {
+            margin: 60px 0px 100px 0px; 
+        }
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 10pt;
+            color: #334155;
+            line-height: 1.4;
+        }
+
+        /* HEADER TAM SAYFA GENİŞLİĞİNDE */
+        .page-header {
+            position: fixed;
+            top: -45px;
+            left: 40px;
+            right: 40px;
+            height: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #94a3b8;
+            font-size: 8pt;
+            text-align: right;
+        }
+
+        .header-container {
+            position: relative;
+            background-color: #282828;
+            color: #ffffff;
+            border-bottom: 5px solid #cfb481;
+            margin-bottom: 30px;
+            margin-top: -60px; /* Sayfa marjını yutarak en üste yaslanır */
+            z-index: 10;
+        }
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .header-table td {
+            vertical-align: middle;
+            padding: 30px 40px;
+        }
+        .logo-text {
+            font-size: 20pt;
+            font-weight: bold;
+            color: #cfb481;
+            letter-spacing: 0.5px;
+        }
+        .logo-subtitle {
+            font-size: 9pt;
+            color: #cbd5e1;
+            margin-top: 5px;
+        }
+        .doc-title {
+            text-align: right;
+            font-size: 14pt;
+            font-weight: bold;
+            color: #f8fafc;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .doc-date {
+            font-size: 9pt;
+            color: #cbd5e1;
+            font-weight: normal;
+        }
+
+        /* İÇERİK KISMI MARJLARI */
+        .content {
+            padding: 0 40px;
+        }
+
+        /* BİLGİ KUTULARI */
+        .info-section {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .info-table td {
+            vertical-align: top;
+            width: 50%;
+        }
+        .info-box {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-top: 3px solid #282828;
+            padding: 15px;
+            border-radius: 4px;
+            /* Height kısıtlaması kaldırıldı, kutu içindeki metin uzadıkça otomatik büyüyecek */
+        }
+        .info-title {
+            font-weight: bold;
+            font-size: 10pt;
+            margin-bottom: 8px;
+            color: #cfb481;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 5px;
+        }
+
+        /* DATA TABLE */
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            font-size: 8pt;
+        }
+        table.data-table th, table.data-table td {
+            border: 1px solid #e2e8f0;
+            padding: 10px 8px;
+            text-align: left;
+        }
+        table.data-table th {
+            background-color: #282828;
+            color: #ffffff;
+            font-weight: bold;
+            border-color: #282828;
+            font-size: 8pt;
+            letter-spacing: 0.5px;
+        }
+        table.data-table tbody tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        table.data-table tbody tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+        
+        .row-date { color: #64748b; font-weight: bold; }
+        .row-type { font-size: 7.5pt; color: #475569; background: #e2e8f0; padding: 2px 4px; border-radius: 2px; }
+
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .amount { white-space: nowrap; font-family: 'DejaVu Sans', sans-serif; font-weight: bold; }
+
+        /* SUMMARY */
+        .summary-box {
+            width: 50%;
+            float: right;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-top: 3px solid #cfb481;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .summary-table { width: 100%; border-collapse: collapse; }
+        .summary-table td { padding: 8px 0; border-bottom: 1px dashed #cbd5e1; font-size: 9pt; }
+        .summary-table tr:last-child td {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 12pt;
+            color: #282828;
+            padding-top: 15px;
+        }
+        .clear { clear: both; }
+
+        /* SIGNATURES */
+        .signatures {
+            width: 100%;
+            margin-top: 50px;
+            page-break-inside: avoid;
+        }
+        .signatures td {
+            width: 50%;
+            text-align: center;
+        }
+        .sig-title {
+            font-weight: bold;
+            color: #282828;
+            font-size: 10pt;
+            text-transform: uppercase;
+        }
+        .signature-line {
+            width: 70%;
+            margin: 0 auto;
+            border-bottom: 1px solid #282828;
+            margin-top: 100px; /* Kaşe alanı */
+            margin-bottom: 15px;
+        }
+
+        /* FOOTER */
+        footer {
+            position: fixed;
+            bottom: -80px;
+            left: 40px;
+            right: 40px;
+            height: 60px;
+            text-align: center;
+            font-size: 8pt;
+            color: #64748b;
+            border-top: 2px solid #cfb481;
+            padding-top: 10px;
+            line-height: 1.4;
+        }
+        .pagenum:after { content: counter(page); }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        Cari Hesap Ekstresi &bull; {% if statement.client.client_type == 'Kurumsal' %}{{ statement.client.company_name }}{% else %}{{ statement.client.first_name }} {{ statement.client.last_name }}{% endif %}
+    </div>
+
+    <footer>
+        <div style="margin-bottom: 3px;">
+            Cari mutabakat sonucu yukarıdaki bakiye konusunda mutabık kaldığımızı onaylarız. İşbu cari hesap ekstresi, içerdiği tüm sayfalarla bir bütündür ve ayrılmaz bir parçası olarak birbirini bağlamaktadır.<br>
+            Sistem tarafından <strong>{{ generated_at }}</strong> tarihinde oluşturulmuştur.
+        </div>
+        <strong>Sayfa <span class="pagenum"></span></strong>
+    </footer>
+    
+    <div class="header-container">
+        <table class="header-table">
+            <tr>
+                <td>
+                    <div class="logo-text">{{ settings.company_name|default('Hukuk Bürosu') }}</div>
+                </td>
+                <td class="doc-title">
+                    CARİ HESAP EKSTRESİ<br>
+                    <span class="doc-date">Tarih: {{ generated_at }}</span>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="content">
+        <div class="info-section">
+            <table class="info-table">
+                <tr>
+                    <td style="padding-right: 15px;">
+                        <div class="info-box">
+                            <div class="info-title">DÜZENLEYEN</div>
+                            <strong style="font-size: 11pt; color: #282828;">{{ settings.company_name|default('Hukuk Bürosu') }}</strong><br>
+                            <div style="font-size: 9pt; margin-top: 10px; line-height: 1.6;">
+                                Tel: {{ settings.phone|default('-') }}<br>
+                                E-posta: {{ settings.email|default('-') }}<br>
+                                Adres: {{ settings.address|default('-') }}
+                            </div>
+                        </div>
+                    </td>
+                    <td style="padding-left: 15px;">
+                        <div class="info-box">
+                            <div class="info-title">MÜVEKKİL</div>
+                            <strong style="font-size: 11pt; color: #282828;">
+                                {% if statement.client.client_type == 'Kurumsal' %}
+                                    {{ statement.client.company_name }}
+                                {% else %}
+                                    {{ statement.client.first_name }} {{ statement.client.last_name }}
+                                {% endif %}
+                            </strong><br>
+                            <div style="font-size: 9pt; margin-top: 10px; line-height: 1.6;">
+                                VKN/TCKN: {{ statement.client.tax_no ?: statement.client.tc_no ?: '-' }}<br>
+                                Tel: {{ statement.client.phone|default('-') }}<br>E-posta: {{ statement.client.email|default('-') }}<br>
+                                {% if statement.client.address %}
+                                    Adres: {{ statement.client.address }} 
+                                    {% if statement.client.district or statement.client.city %}
+                                        ({{ statement.client.district|default('') }} / {{ statement.client.city|default('') }})
+                                    {% endif %}<br>
+                                {% endif %}
+                                <div style="margin-top: 5px; color: #cfb481; font-weight: bold;">
+                                Dönem: 
+                                {% if statement.period.date_from and statement.period.date_to %}
+                                    {{ statement.period.date_from|date('d.m.Y') }} - {{ statement.period.date_to|date('d.m.Y') }}
+                                {% elseif statement.period.date_from %}
+                                    {{ statement.period.date_from|date('d.m.Y') }} ve sonrası
+                                {% elseif statement.period.date_to %}
+                                    {{ statement.period.date_to|date('d.m.Y') }} öncesi
+                                {% else %}
+                                    Tüm Kayıtlar
+                                {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th width="12%" style="text-align: center;">Tarih</th>
+                    <th width="15%">İşlem Tipi</th>
+                    <th width="30%">Açıklama</th>
+                    <th width="14%" class="text-right">Borç (Alacaklıyız)</th>
+                    <th width="14%" class="text-right">Alacak (Ödenen)</th>
+                    <th width="15%" class="text-right" style="color: #cfb481;">Bakiye</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="5" style="border-right: none;"><strong style="color: #282828;">Devreden Bakiye</strong></td>
+                    <td class="text-right amount" style="border-left: none; color: #282828;">{{ statement.balances.initial|number_format(2, ',', '.') }} ₺</td>
+                </tr>
+                
+                {% for row in statement.transactions %}
+                    {% set isDebt = (row.transaction_type == 'Alacak') or (row.transaction_type == 'Gider' and row.sub_type == 'masraf') %}
+                    {% set isCredit = (row.transaction_type == 'Tahsilat') %}
+                    <tr>
+                        <td class="text-center row-date">{{ row.transaction_date|date('d.m.Y') }}</td>
+                        <td>
+                            <span class="row-type">{{ row.transaction_type }}</span>
+                            {% if row.sub_type %}<br><span style="font-size: 7pt; color: #94a3b8; text-transform: uppercase;">{{ row.sub_type }}</span>{% endif %}
+                        </td>
+                        <td>
+                            <span style="color: #334155;">{{ row.description ?: row.category|default('-') }}</span>
+                            {% if row.case_no %}
+                                <br><span style="color:#64748b; font-size: 7.5pt; font-weight: bold;">{{ row.case_no }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-right amount" style="color: #b91c1c;">
+                            {% if isDebt %}{{ row.total_amount|number_format(2, ',', '.') }} ₺{% endif %}
+                        </td>
+                        <td class="text-right amount" style="color: #15803d;">
+                            {% if isCredit %}{{ row.total_amount|number_format(2, ',', '.') }} ₺{% endif %}
+                        </td>
+                        <td class="text-right amount" style="color: #282828;">
+                            {{ row.running_balance|number_format(2, ',', '.') }} ₺
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center" style="padding: 20px;">Bu dönemde herhangi bir işlem bulunmamaktadır.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Sayfa Bölünmesini Engellemek İçin Kapsayıcı -->
+        <div style="page-break-inside: avoid;">
+            <div class="summary-box">
+                <table class="summary-table">
+                    <tr>
+                        <td><strong>Genel Bakiye (Net):</strong></td>
+                        <td class="text-right">
+                            <span style="{% if statement.balances.final > 0 %}color:#b91c1c;{% elseif statement.balances.final < 0 %}color:#15803d;{% endif %}">
+                                {{ statement.balances.final|number_format(2, ',', '.') }} ₺
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+                <p style="font-size:7pt; color:#94a3b8; text-align:right; margin-top: 10px; line-height: 1.4;">
+                    * Pozitif (+) bakiye ofisimizin alacaklı olduğunu,<br>
+                    * Negatif (-) bakiye müvekkilin emanet/fazla ödemesi olduğunu belirtir.
+                </p>
+            </div>
+            
+            <div class="clear"></div>
+
+            <table class="signatures">
+                <tr>
+                    <td>
+                        <div class="sig-title">Büro / Avukat</div>
+                        <div class="signature-line"></div>
+                        <span style="color: #64748b; font-size: 9pt;">Kaşe / İmza</span>
+                    </td>
+                    <td>
+                        <div class="sig-title">Müvekkil Onay</div>
+                        <div class="signature-line"></div>
+                        <span style="color: #64748b; font-size: 9pt;">Kaşe / İmza</span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

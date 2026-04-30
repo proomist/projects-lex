@@ -1,0 +1,317 @@
+{% extends 'layouts/app.twig' %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Özet İstatistik Kartları -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Aktif Dosyalar -->
+        <div class="bg-white rounded-lg border border-slate-200 p-4 shadow-sm relative overflow-hidden group">
+            <div class="absolute right-0 top-0 w-16 h-16 bg-gray-custom/5 rounded-bl-full -z-10 group-hover:bg-gold-custom/10 transition-colors"></div>
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-slate-500 mb-1">Aktif Dosyalar</p>
+                    <h3 class="text-2xl font-bold text-gray-custom" id="stat-active-cases"><div class="skeleton h-7 w-12 rounded"></div></h3>
+                </div>
+                <div class="w-10 h-10 rounded-md bg-gray-custom/5 flex items-center justify-center text-gray-custom border border-gray-custom/10">
+                    <i data-lucide="folder-open" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center text-xs text-emerald-600 font-medium">
+                <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i>
+                <span>Sistem Geneli</span>
+            </div>
+        </div>
+
+        <!-- Yaklaşan Duruşmalar -->
+        <div class="bg-white rounded-lg border border-slate-200 p-4 shadow-sm relative overflow-hidden group">
+            <div class="absolute right-0 top-0 w-16 h-16 bg-gold-custom/5 rounded-bl-full -z-10 group-hover:bg-gold-custom/20 transition-colors"></div>
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-slate-500 mb-1">Duruşma (Bu Ay)</p>
+                    <h3 class="text-2xl font-bold text-gray-custom" id="stat-month-hearings"><div class="skeleton h-7 w-12 rounded"></div></h3>
+                </div>
+                <div class="w-10 h-10 rounded-md bg-gold-custom/10 flex items-center justify-center text-gold-custom border border-gold-custom/20">
+                    <i data-lucide="gavel" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center text-xs text-slate-500 font-medium">
+                <i data-lucide="calendar" class="w-3 h-3 mr-1"></i>
+                <span>Planlanan duruşmalar</span>
+            </div>
+        </div>
+
+        <!-- Geciken Görevler -->
+        <div class="bg-white rounded-lg border border-slate-200 p-4 shadow-sm relative overflow-hidden group">
+            <div class="absolute right-0 top-0 w-16 h-16 bg-gray-custom/5 rounded-bl-full -z-10 group-hover:bg-gray-custom/10 transition-colors"></div>
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-slate-500 mb-1">Geciken Görev</p>
+                    <h3 class="text-2xl font-bold text-gray-custom" id="stat-delayed-tasks"><div class="skeleton h-7 w-12 rounded"></div></h3>
+                </div>
+                <div class="w-10 h-10 rounded-md bg-gray-custom/5 flex items-center justify-center text-gray-custom border border-gray-custom/10">
+                    <i data-lucide="check-square" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center text-xs text-rose-500 font-medium">
+                <i data-lucide="alert-circle" class="w-3 h-3 mr-1"></i>
+                <span>Süresi geçmiş işlemler</span>
+            </div>
+        </div>
+
+        <!-- Bekleyen Alacak -->
+        <div class="bg-gray-custom text-white rounded-lg border border-[#3c3c3c] p-4 shadow-md relative overflow-hidden group">
+            <div class="absolute right-0 top-0 w-16 h-16 bg-gold-custom/10 rounded-bl-full -z-10 group-hover:bg-gold-custom/20 transition-colors"></div>
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-400 mb-1">Bekleyen Alacak</p>
+                    <h3 class="text-2xl font-bold text-gold-custom" id="stat-total-receivables"><div class="skeleton h-7 w-24 rounded" style="opacity:0.3"></div></h3>
+                </div>
+                <div class="w-10 h-10 rounded-md bg-gold-custom/20 flex items-center justify-center text-gold-custom border border-gold-custom/30">
+                    <i data-lucide="wallet" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center text-xs text-gray-400 font-medium">
+                <i data-lucide="clock" class="w-3 h-3 mr-1 text-rose-400"></i>
+                <span>Tüm dosyalardaki alacaklar</span>
+            </div>
+        </div>
+
+        <!-- Bu Ay Kâr -->
+        <div class="bg-gray-custom text-white rounded-lg border border-[#3c3c3c] p-4 shadow-md relative overflow-hidden group">
+            <div class="absolute right-0 top-0 w-16 h-16 bg-emerald-500/10 rounded-bl-full -z-10 group-hover:bg-emerald-500/20 transition-colors"></div>
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-400 mb-1">Bu Ay Kâr</p>
+                    <h3 class="text-2xl font-bold" id="stat-office-profit"><div class="skeleton h-7 w-24 rounded" style="opacity:0.3"></div></h3>
+                </div>
+                <div class="w-10 h-10 rounded-md bg-emerald-500/20 flex items-center justify-center text-emerald-400 border border-emerald-500/30">
+                    <i data-lucide="trending-up" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center text-xs text-gray-400 font-medium">
+                <i data-lucide="calculator" class="w-3 h-3 mr-1 text-emerald-400"></i>
+                <span>Ücret Tahsilatı − Büro Gideri</span>
+            </div>
+        </div>
+
+        <!-- Emanet Kasası -->
+        <div class="bg-gray-custom text-white rounded-lg border border-[#3c3c3c] p-4 shadow-md relative overflow-hidden group">
+            <div class="absolute right-0 top-0 w-16 h-16 bg-sky-500/10 rounded-bl-full -z-10 group-hover:bg-sky-500/20 transition-colors"></div>
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-400 mb-1">Emanet Kasası</p>
+                    <h3 class="text-2xl font-bold" id="stat-trust-balance"><div class="skeleton h-7 w-24 rounded" style="opacity:0.3"></div></h3>
+                </div>
+                <div class="w-10 h-10 rounded-md bg-sky-500/20 flex items-center justify-center text-sky-400 border border-sky-500/30">
+                    <i data-lucide="landmark" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center text-xs text-gray-400 font-medium">
+                <i data-lucide="shield" class="w-3 h-3 mr-1 text-sky-400"></i>
+                <span>Emanet − Masraf bakiyesi</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- İkinci Satır: Duruşmalar ve Görevler -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Yaklaşan Duruşmalar Listesi -->
+        <div class="lg:col-span-2 bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-custom flex items-center gap-2">
+                    <i data-lucide="gavel" class="w-4 h-4 text-gold-custom"></i>
+                    Yaklaşan Duruşmalar
+                </h3>
+                <a href="/hearings" class="text-sm font-medium text-gray-500 hover:text-gold-custom transition-colors">Tümünü Gör &rarr;</a>
+            </div>
+            <div class="p-0 overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-slate-50 text-slate-500 font-medium">
+                        <tr>
+                            <th class="px-5 py-3 border-b border-slate-200">Tarih / Saat</th>
+                            <th class="px-5 py-3 border-b border-slate-200">Mahkeme</th>
+                            <th class="px-5 py-3 border-b border-slate-200">Dosya No</th>
+                            <th class="px-5 py-3 border-b border-slate-200">Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody id="upcomingHearingsBody" class="divide-y divide-slate-100">
+                        <tr><td colspan="4" class="px-5 py-8 text-center text-sm text-slate-400">Yükleniyor...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- İş Listem (Benim Görevlerim) -->
+        <div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-custom flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-gold-custom"></i>
+                    Bana Atanan Görevler
+                </h3>
+            </div>
+            <div id="myTasksContainer" class="p-4 space-y-3 flex-1 overflow-y-auto">
+                <div class="py-6 text-center text-sm text-slate-400">Yükleniyor...</div>
+            </div>
+            <div class="px-5 py-3 border-t border-slate-100 bg-slate-50 rounded-b-lg">
+                <a href="/tasks" class="text-xs font-medium text-gray-500 hover:text-gold-custom transition-colors w-full text-center block">Tüm İş Listem &rarr;</a>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    async function loadDashboardSummary() {
+        const res = await apiCall('/dashboard/summary');
+
+        if (res && res.status === 'success') {
+            const data = res.data;
+
+            // Kartları Güncelle
+            document.getElementById('stat-active-cases').textContent = data.active_cases || 0;
+            document.getElementById('stat-month-hearings').textContent = data.this_month_hearings || 0;
+            document.getElementById('stat-delayed-tasks').textContent = data.delayed_tasks || 0;
+
+            var fmt = function(v) { return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(v); };
+
+            var receivables = data.financial?.total_receivables || 0;
+            document.getElementById('stat-total-receivables').textContent = fmt(receivables);
+
+            // Bu Ay Kâr
+            var officeProfit = data.financial?.office_profit || {};
+            var profitValue = officeProfit.profit || 0;
+            var profitEl = document.getElementById('stat-office-profit');
+            profitEl.textContent = fmt(profitValue);
+            profitEl.className = 'text-2xl font-bold ' + (profitValue >= 0 ? 'text-emerald-400' : 'text-rose-400');
+
+            // Emanet Kasası
+            var trustBalance = data.financial?.trust_balance || 0;
+            var trustEl = document.getElementById('stat-trust-balance');
+            trustEl.textContent = fmt(trustBalance);
+            trustEl.className = 'text-2xl font-bold ' + (trustBalance >= 0 ? 'text-sky-400' : 'text-rose-400');
+
+            // Yaklaşan Duruşmaları Render Et
+            renderUpcomingHearings(data.upcoming_hearings || []);
+
+            // Bana Atanan Görevleri Render Et
+            renderMyTasks(data.my_tasks || []);
+        }
+    }
+
+    function renderUpcomingHearings(hearings) {
+        const tbody = document.getElementById('upcomingHearingsBody');
+        if (!hearings.length) {
+            tbody.innerHTML = '<tr><td colspan="4" class="px-5 py-8 text-center text-sm text-slate-400">Yaklaşan duruşma bulunmuyor</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = hearings.map(function(h) {
+            var date = new Date(h.hearing_date);
+            var today = new Date();
+            today.setHours(0,0,0,0);
+            var hearingDay = new Date(date);
+            hearingDay.setHours(0,0,0,0);
+            var isToday = hearingDay.getTime() === today.getTime();
+
+            var dateStr = isToday ? 'Bugün' : date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+            var timeStr = date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+            var dateClass = isToday ? 'text-rose-600' : 'text-slate-800';
+            var timeClass = isToday ? 'text-rose-500' : 'text-slate-500';
+
+            var statusClass = isToday
+                ? 'bg-rose-50 text-rose-600 border-rose-200'
+                : 'bg-slate-100 text-slate-600 border-slate-200';
+            var statusText = isToday ? 'Bugün' : 'Planlandı';
+
+            return '<tr class="hover:bg-slate-50/50 transition-colors">' +
+                '<td class="px-5 py-3">' +
+                    '<div class="font-medium ' + dateClass + '">' + dateStr + '</div>' +
+                    '<div class="text-xs ' + timeClass + '">' + timeStr + '</div>' +
+                '</td>' +
+                '<td class="px-5 py-3">' + (h.court_name || '-') + '</td>' +
+                '<td class="px-5 py-3">' +
+                    '<span class="font-medium text-gray-custom">' + (h.case_no || '-') + '</span>' +
+                '</td>' +
+                '<td class="px-5 py-3">' +
+                    '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ' + statusClass + ' border">' + statusText + '</span>' +
+                '</td>' +
+            '</tr>';
+        }).join('');
+    }
+
+    function renderMyTasks(tasks) {
+        var container = document.getElementById('myTasksContainer');
+        if (!tasks.length) {
+            container.innerHTML = '<div class="py-6 text-center text-sm text-slate-400">Atanmış görev bulunmuyor</div>';
+            return;
+        }
+
+        var priorityMap = {
+            'Acil': { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-100' },
+            'Yüksek': { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-100' },
+            'Normal': { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200' },
+            'Düşük': { bg: 'bg-slate-50', text: 'text-slate-500', border: 'border-slate-100' }
+        };
+
+        container.innerHTML = tasks.map(function(t) {
+            var p = priorityMap[t.priority] || priorityMap['Normal'];
+            var subtitle = t.case_no
+                ? ('Dosya: ' + t.case_no)
+                : (t.client_first_name ? (t.client_first_name + ' ' + (t.client_last_name || '')) : 'Genel Görev');
+
+            var dueDateLabel = '';
+            var dueDateClass = 'text-slate-500';
+            if (t.due_date) {
+                var due = new Date(t.due_date);
+                var today = new Date();
+                today.setHours(0,0,0,0);
+                var dueDay = new Date(due);
+                dueDay.setHours(0,0,0,0);
+                var diff = Math.round((dueDay - today) / 86400000);
+
+                if (diff < 0) { dueDateLabel = 'Gecikmiş'; dueDateClass = 'text-rose-600 font-medium'; }
+                else if (diff === 0) { dueDateLabel = 'Bugün'; dueDateClass = 'text-rose-500'; }
+                else if (diff === 1) { dueDateLabel = 'Yarın'; dueDateClass = 'text-amber-600'; }
+                else { dueDateLabel = due.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }); }
+            }
+
+            return '<label class="flex items-start gap-3 p-3 rounded-md border border-slate-200 hover:border-gold-custom/50 hover:bg-gold-custom/5 transition-all cursor-pointer group">' +
+                '<div class="mt-0.5">' +
+                    '<input type="checkbox" class="w-4 h-4 text-gold-custom rounded border-slate-300 focus:ring-gold-custom focus:ring-offset-0 cursor-pointer" onchange="completeTask(' + t.id + ', this)">' +
+                '</div>' +
+                '<div class="flex-1 min-w-0">' +
+                    '<div class="flex items-center justify-between mb-1">' +
+                        '<span class="text-sm font-medium text-slate-800 group-hover:text-gray-custom truncate">' + t.title + '</span>' +
+                        '<span class="shrink-0 ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ' + p.bg + ' ' + p.text + ' border ' + p.border + '">' + t.priority + '</span>' +
+                    '</div>' +
+                    '<div class="text-xs text-slate-500 flex justify-between">' +
+                        '<span>' + subtitle + '</span>' +
+                        '<span class="' + dueDateClass + '">' + dueDateLabel + '</span>' +
+                    '</div>' +
+                '</div>' +
+            '</label>';
+        }).join('');
+    }
+
+    async function completeTask(taskId, checkbox) {
+        var res = await apiCall('/tasks/' + taskId, 'PUT', { status: 'Tamamlandı' });
+        if (res && res.status === 'success') {
+            checkbox.closest('label').style.opacity = '0.5';
+            setTimeout(function() { loadDashboardSummary(); }, 800);
+        } else {
+            checkbox.checked = false;
+            if (typeof showToast === 'function') showToast('Görev tamamlanamadı.', 'error');
+        }
+    }
+
+    // İlk yükleme
+    document.addEventListener('DOMContentLoaded', function() {
+        loadDashboardSummary();
+    });
+</script>
+{% endblock %}

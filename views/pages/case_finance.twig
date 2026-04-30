@@ -1,0 +1,564 @@
+{% extends 'layouts/app.twig' %}
+
+{% block content %}
+<div class="flex flex-col h-full space-y-4">
+    <!-- Header -->
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm px-5 py-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-4">
+            <a href="/cases" class="p-2 hover:bg-slate-100 text-slate-500 rounded-lg transition-colors">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            </a>
+            <div>
+                <h2 class="text-xl font-bold text-slate-800" id="caseTitle">Yükleniyor...</h2>
+                <div class="flex items-center gap-2 mt-1 text-sm text-slate-500">
+                    <span id="caseClient">Müvekkil: -</span>
+                    <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                    <span id="caseType">Tür: -</span>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="openCollectionModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm">
+                <i data-lucide="plus" class="w-4 h-4"></i> Yeni Tahsilat (Havuza Al)
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 overflow-hidden">
+        
+        <!-- Sol Kolon: Sözleşme & Dosya Değerleri -->
+        <div class="lg:col-span-1 flex flex-col gap-4 overflow-y-auto custom-scroll pr-1 pb-4">
+            
+            <!-- Vekalet Sözleşmesi -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="file-signature" class="w-5 h-5 text-gold-custom"></i>
+                        Vekalet Sözleşmesi
+                    </h3>
+                </div>
+                
+                <form id="feeAgreementForm" class="space-y-4">
+                    <input type="hidden" id="agreement_id">
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Sözleşme Tipi</label>
+                        <select id="fee_type" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-gold-custom focus:ring-1 focus:ring-gold-custom outline-none bg-slate-50">
+                            <option value="Maktu">Maktu (Sabit Ücret)</option>
+                            <option value="Yüzdelik">Yüzdelik Oran (%)</option>
+                        </select>
+                    </div>
+
+                    <div id="fee_amount_container">
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Sabit Tutar (TL)</label>
+                        <input type="number" id="fee_amount" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-gold-custom outline-none">
+                    </div>
+
+                    <div id="fee_percentage_container" class="hidden">
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Sözleşme Oranı (%)</label>
+                        <input type="number" id="fee_percentage" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-gold-custom outline-none" min="0" max="100">
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="is_vat_included" class="sr-only peer" checked>
+                            <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-gold-custom"></div>
+                            <span class="ml-3 text-sm font-medium text-slate-700">KDV Dahil</span>
+                        </label>
+                    </div>
+
+                    <button type="button" onclick="saveFeeAgreement()" id="saveAgreementBtn" class="w-full bg-slate-800 hover:bg-slate-900 text-white py-2 rounded-lg text-sm font-medium transition-colors">
+                        Sözleşmeyi Kaydet
+                    </button>
+                </form>
+            </div>
+
+            <!-- Masraf ve Avanslar (case_expenses özeti) -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 flex-1 flex flex-col">
+                <div class="flex items-center justify-between mb-4 shrink-0">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="receipt" class="w-5 h-5 text-rose-500"></i>
+                        Masraflar
+                    </h3>
+                    <span class="bg-rose-50 text-rose-600 text-xs px-2 py-1 rounded font-bold" id="totalExpenseAmount">₺0,00</span>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scroll -mx-5 px-5">
+                    <div id="expensesList" class="space-y-3">
+                        <div class="text-sm text-slate-500 text-center py-4">Kayıtlı masraf yok.</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Sağ Kolon: Tahsilat Havuzu & Şelale -->
+        <div class="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 shrink-0 bg-slate-50/50 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2 text-lg">
+                    <i data-lucide="layers" class="w-5 h-5 text-emerald-600"></i>
+                    Tahsilat Havuzu & Dağıtım Geçmişi
+                </h3>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto custom-scroll p-5" id="collectionsContainer">
+                <div class="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
+                    <i data-lucide="inbox" class="w-12 h-12 opacity-50"></i>
+                    <p class="text-sm">Henüz bu dosyaya ait tahsilat bulunmuyor.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Yeni Tahsilat (Havuza Al) Modal -->
+<div id="collectionModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-300" id="collectionModalContent">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-bold text-gray-900 flex items-center gap-2">
+                <i data-lucide="plus-circle" class="w-5 h-5 text-emerald-600"></i> Havuza Tahsilat Ekle
+            </h3>
+            <button onclick="closeCollectionModal()" class="text-slate-400 hover:text-rose-500">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <form id="collectionForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Kaynak</label>
+                    <select id="col_source" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-emerald-500">
+                        <option value="İcra Dairesi">İcra Dairesi</option>
+                        <option value="Mahkeme Veznesi">Mahkeme Veznesi</option>
+                        <option value="Karşı Taraf">Karşı Taraf (Elden/Hesaba)</option>
+                        <option value="Arabuluculuk">Arabuluculuk</option>
+                        <option value="Diğer">Diğer</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Brüt Tutar (İcraya/Vezneye Yatan)</label>
+                    <input type="number" id="col_gross" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-emerald-500" step="0.01" oninput="calculateNet()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Kesintiler (Tahsil Harcı, Cezaevi vb.)</label>
+                    <input type="number" id="col_deductions" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-emerald-500" value="0" step="0.01" oninput="calculateNet()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-emerald-700 mb-1">Net Yatan (Hesaba Giren)</label>
+                    <input type="number" id="col_net" class="w-full px-3 py-2 border border-emerald-300 bg-emerald-50 rounded-lg text-sm outline-none font-bold text-emerald-800" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tahsilat Tarihi</label>
+                    <input type="date" id="col_date" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-emerald-500" value="{{ 'now'|date('Y-m-d') }}">
+                </div>
+                
+                <button type="button" onclick="saveCollection()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-medium mt-4">
+                    Havuza Ekle
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Dağıtım (Şelale) Modal -->
+<div id="distributionModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg transform scale-95 transition-transform duration-300" id="distModalContent">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-bold text-gray-900 flex items-center gap-2">
+                <i data-lucide="split-square-horizontal" class="w-5 h-5 text-indigo-600"></i> Tahsilatı Dağıt (Şelale)
+            </h3>
+            <button onclick="closeDistributionModal()" class="text-slate-400 hover:text-rose-500">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-6 bg-slate-50/50">
+            <input type="hidden" id="dist_col_id">
+            
+            <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-3 flex justify-between items-center mb-5">
+                <span class="text-sm font-medium text-indigo-800">Dağıtılacak Net Havuz Tutarı:</span>
+                <span class="text-lg font-bold text-indigo-900" id="dist_total_amount">₺0,00</span>
+            </div>
+
+            <form id="distributionForm" class="space-y-4">
+                
+                <!-- Avukat Kalemleri -->
+                <div class="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                    <div class="bg-slate-50 px-3 py-2 border-b border-slate-200 font-semibold text-xs text-slate-600 uppercase">Avukat Gelirleri (Ücret Tahsilatı)</div>
+                    <div class="p-3 space-y-3">
+                        <div class="flex items-center justify-between gap-4">
+                            <label class="text-sm font-medium text-slate-700 w-1/2">Karşı Vekalet Ücreti</label>
+                            <input type="number" id="dist_opposing" class="w-1/2 px-3 py-1.5 border border-slate-300 rounded-md text-sm text-right focus:border-indigo-500" value="0" oninput="calculateDistBalance()">
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                            <label class="text-sm font-medium text-slate-700 w-1/2">Sözleşmesel Vekalet (Müvekkil)</label>
+                            <input type="number" id="dist_client_fee" class="w-1/2 px-3 py-1.5 border border-slate-300 rounded-md text-sm text-right focus:border-indigo-500" value="0" oninput="calculateDistBalance()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Emanet / Müvekkil Kalemleri -->
+                <div class="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                    <div class="bg-slate-50 px-3 py-2 border-b border-slate-200 font-semibold text-xs text-slate-600 uppercase">Müvekkil İadeleri (Emanet Tahsilatı)</div>
+                    <div class="p-3 space-y-3">
+                        <div class="flex items-center justify-between gap-4">
+                            <label class="text-sm font-medium text-slate-700 w-1/2">Masraf İadesi</label>
+                            <input type="number" id="dist_refund" class="w-1/2 px-3 py-1.5 border border-slate-300 rounded-md text-sm text-right focus:border-indigo-500" value="0" oninput="calculateDistBalance()">
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                            <label class="text-sm font-medium text-slate-700 w-1/2">Net Müvekkil Ödemesi (Anapara)</label>
+                            <input type="number" id="dist_net" class="w-1/2 px-3 py-1.5 border border-slate-300 rounded-md text-sm text-right focus:border-indigo-500" value="0" oninput="calculateDistBalance()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Summary -->
+                <div class="flex justify-between items-center px-2">
+                    <span class="text-sm font-medium text-slate-500">Dağıtılan Toplam: <span id="dist_sum" class="font-bold text-slate-800">₺0,00</span></span>
+                    <span class="text-sm font-medium text-slate-500">Kalan Fark: <span id="dist_diff" class="font-bold text-rose-600">₺0,00</span></span>
+                </div>
+
+                <button type="button" id="distBtn" onclick="saveDistribution()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium shadow-sm transition-colors mt-2" disabled>
+                    Dağıtımı Onayla ve Cari'ye İşle
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const caseId = {{ case_id }};
+    let clientId = 0;
+    let netCollectionAmount = 0;
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
+    }
+
+    document.getElementById('fee_type').addEventListener('change', function() {
+        if(this.value === 'Maktu') {
+            document.getElementById('fee_amount_container').classList.remove('hidden');
+            document.getElementById('fee_percentage_container').classList.add('hidden');
+        } else {
+            document.getElementById('fee_amount_container').classList.add('hidden');
+            document.getElementById('fee_percentage_container').classList.remove('hidden');
+        }
+    });
+
+    async function loadData() {
+        // Dosya bilgilerini al (Başlık için)
+        const caseRes = await apiCall(`/cases/${caseId}`);
+        if(caseRes && caseRes.status === 'success') {
+            const c = caseRes.data;
+            clientId = c.client_id;
+            const folderPrefix = c.folder_no ? `Föy: ${c.folder_no} | ` : '';
+            const baseSuffix = c.merits_no ? ` (Esas: ${c.merits_no})` : '';
+            document.getElementById('caseTitle').textContent = `${folderPrefix}${c.case_no || 'Dosya'}${baseSuffix}`;
+            const clientName = c.client_type === 'Bireysel' ? `${c.client_first_name} ${c.client_last_name}` : c.client_company_name;
+            document.getElementById('caseClient').textContent = `Müvekkil: ${clientName || 'Bilinmiyor'}`;
+            document.getElementById('caseType').textContent = `Tür: ${c.case_type} / ${c.subject}`;
+        }
+
+        // Finansal bilgileri (Collections, Distributions, vs) al
+        const finRes = await apiCall(`/distributions/cases/${caseId}`);
+        if(finRes && finRes.status === 'success') {
+            renderFeeAgreement(finRes.data.agreement);
+            renderCollections(finRes.data.collections, finRes.data.distributions);
+            renderExpenses(finRes.data.expenses);
+        }
+    }
+
+    function renderFeeAgreement(agreement) {
+        if(!agreement) return;
+        document.getElementById('agreement_id').value = agreement.id;
+        document.getElementById('fee_type').value = agreement.fee_type;
+        document.getElementById('fee_type').dispatchEvent(new Event('change'));
+        
+        document.getElementById('fee_amount').value = agreement.fee_amount || '';
+        document.getElementById('fee_percentage').value = agreement.fee_percentage || '';
+        document.getElementById('is_vat_included').checked = (agreement.is_vat_included == 1);
+    }
+
+    async function saveFeeAgreement() {
+        const btn = document.getElementById('saveAgreementBtn');
+        btn.textContent = 'Kaydediliyor...';
+        btn.disabled = true;
+
+        const payload = {
+            id: document.getElementById('agreement_id').value,
+            client_id: clientId,
+            case_id: caseId,
+            fee_type: document.getElementById('fee_type').value,
+            fee_amount: document.getElementById('fee_amount').value || 0,
+            fee_percentage: document.getElementById('fee_percentage').value || 0,
+            is_vat_included: document.getElementById('is_vat_included').checked ? 1 : 0
+        };
+
+        const res = await apiCall('/distributions/fee-agreement', 'POST', payload);
+        btn.textContent = 'Sözleşmeyi Kaydet';
+        btn.disabled = false;
+
+        if(res && res.status === 'success') {
+            showToast('Sözleşme kaydedildi.', 'success');
+        } else {
+            showToast('Hata: ' + res?.message, 'error');
+        }
+    }
+
+    function renderExpenses(expenses) {
+        const list = document.getElementById('expensesList');
+        if(!expenses || expenses.length === 0) {
+            list.innerHTML = '<div class="text-sm text-slate-500 text-center py-4">Kayıtlı masraf yok.</div>';
+            return;
+        }
+
+        let total = 0;
+        list.innerHTML = expenses.map(e => {
+            total += parseFloat(e.amount);
+            const rucuBg = e.charged_to_debtor ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-600';
+            return `
+                <div class="p-3 border border-slate-100 rounded-lg flex flex-col hover:border-slate-300 transition-colors">
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="font-medium text-slate-800 text-sm">${formatCurrency(e.amount)}</span>
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${rucuBg}">${e.charged_to_debtor ? 'İcraya Eklendi' : 'Eklenmedi'}</span>
+                    </div>
+                    <div class="text-xs text-slate-500">${e.expense_type} - <span class="text-slate-400">${e.expense_date.substring(0,10)}</span></div>
+                    <div class="text-[10px] text-slate-400 mt-1">Ödeyen: ${e.paid_by}</div>
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('totalExpenseAmount').textContent = formatCurrency(total);
+    }
+
+    function renderCollections(collections, distributions) {
+        const container = document.getElementById('collectionsContainer');
+        if(!collections || collections.length === 0) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
+                    <i data-lucide="inbox" class="w-12 h-12 opacity-50"></i>
+                    <p class="text-sm">Henüz bu dosyaya ait tahsilat bulunmuyor.</p>
+                </div>`;
+            lucide.createIcons();
+            return;
+        }
+
+        container.innerHTML = collections.map(c => {
+            const isDistributed = c.status === 'Dağıtıldı';
+            const badgeClass = isDistributed ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700';
+            
+            // Eğer dağıtıldıysa, distribution kaydını bulalım
+            let distHtml = '';
+            if (isDistributed) {
+                const distList = distributions.filter(d => d.collection_id === c.id);
+                if(distList.length > 0) {
+                    const d = distList[0];
+                    distHtml = `
+                    <div class="mt-3 bg-slate-50 rounded-lg p-3 border border-slate-100 grid grid-cols-2 gap-y-2 text-xs">
+                        <div class="flex justify-between"><span class="text-slate-500">Müvekkil Anapara:</span> <span class="font-medium">${formatCurrency(d.client_net_payment)}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Müv. Sözleşme Ücreti:</span> <span class="font-medium text-gold-custom">${formatCurrency(d.client_attorney_fee)}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Karşı Vekalet:</span> <span class="font-medium text-gold-custom">${formatCurrency(d.opposing_attorney_fee)}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Masraf İadesi:</span> <span class="font-medium">${formatCurrency(d.expense_refund)}</span></div>
+                    </div>`;
+                }
+            }
+
+            return `
+                <div class="bg-white border border-slate-200 rounded-lg shadow-sm mb-4 overflow-hidden relative group">
+                    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full ${isDistributed ? 'bg-indigo-500' : 'bg-emerald-500'}"></span>
+                            <span class="font-semibold text-slate-800 text-sm">${c.source}</span>
+                            <span class="text-xs text-slate-400 ml-2">${c.collection_date.substring(0,10)}</span>
+                        </div>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeClass}">${c.status}</span>
+                    </div>
+                    
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="text-xs text-slate-500">Brüt Tahsilat / Kesinti</div>
+                            <div class="text-xs font-medium text-slate-700">${formatCurrency(c.gross_amount)} / ${formatCurrency(c.deductions)}</div>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm font-semibold text-slate-900">Net Tahsilat (Havuza Düşen)</div>
+                            <div class="text-lg font-bold text-emerald-600">${formatCurrency(c.net_amount)}</div>
+                        </div>
+
+                        ${distHtml}
+
+                        ${!isDistributed ? `
+                        <div class="mt-4 flex justify-between items-center">
+                            <button onclick="deleteCollection(${c.id})" class="text-slate-400 hover:text-rose-500 hover:bg-rose-50 p-1.5 rounded-md transition-colors" title="Tahsilatı Havuzdan Sil">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="openDistributionModal(${c.id}, ${c.net_amount})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-1.5 rounded-md text-sm font-medium transition-colors border border-indigo-200 shadow-sm flex items-center gap-2">
+                                <i data-lucide="split-square-horizontal" class="w-4 h-4"></i> Şelale Dağıtım Yap
+                            </button>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        lucide.createIcons();
+    }
+
+    // Modal İşlemleri
+    function calculateNet() {
+        const gross = parseFloat(document.getElementById('col_gross').value) || 0;
+        const ded = parseFloat(document.getElementById('col_deductions').value) || 0;
+        document.getElementById('col_net').value = Math.max(0, gross - ded).toFixed(2);
+    }
+
+    function openCollectionModal() {
+        document.getElementById('collectionModal').classList.remove('hidden');
+        document.getElementById('collectionModal').classList.add('flex');
+        setTimeout(() => {
+            document.getElementById('collectionModal').classList.remove('opacity-0');
+            document.getElementById('collectionModalContent').classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeCollectionModal() {
+        document.getElementById('collectionModal').classList.add('opacity-0');
+        document.getElementById('collectionModalContent').classList.add('scale-95');
+        setTimeout(() => {
+            document.getElementById('collectionModal').classList.add('hidden');
+            document.getElementById('collectionModal').classList.remove('flex');
+            document.getElementById('collectionForm').reset();
+            document.getElementById('col_date').value = new Date().toISOString().substring(0, 10);
+        }, 300);
+    }
+
+    async function saveCollection() {
+        const payload = {
+            case_id: caseId,
+            source: document.getElementById('col_source').value,
+            gross_amount: parseFloat(document.getElementById('col_gross').value) || 0,
+            deductions: parseFloat(document.getElementById('col_deductions').value) || 0,
+            net_amount: parseFloat(document.getElementById('col_net').value) || 0,
+            collection_date: document.getElementById('col_date').value
+        };
+
+        if(payload.net_amount <= 0) {
+            return showToast('Net tutar sıfırdan büyük olmalıdır!', 'error');
+        }
+
+        const res = await apiCall('/distributions/collections', 'POST', payload);
+        if(res && res.status === 'success') {
+            closeCollectionModal();
+            loadData();
+            showToast('Havuza başarıyla alındı.', 'success');
+        } else {
+            showToast('Hata: ' + res?.message, 'error');
+        }
+    }
+
+    function openDistributionModal(colId, netAmount) {
+        document.getElementById('dist_col_id').value = colId;
+        netCollectionAmount = parseFloat(netAmount);
+        document.getElementById('dist_total_amount').textContent = formatCurrency(netCollectionAmount);
+        
+        // Formu sıfırla ama net alanına otomatik netCollectionAmount koy (başlangıç tahmini)
+        document.getElementById('dist_opposing').value = 0;
+        document.getElementById('dist_client_fee').value = 0;
+        document.getElementById('dist_refund').value = 0;
+        document.getElementById('dist_net').value = netCollectionAmount;
+        
+        calculateDistBalance();
+
+        document.getElementById('distributionModal').classList.remove('hidden');
+        document.getElementById('distributionModal').classList.add('flex');
+        setTimeout(() => {
+            document.getElementById('distributionModal').classList.remove('opacity-0');
+            document.getElementById('distModalContent').classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeDistributionModal() {
+        document.getElementById('distributionModal').classList.add('opacity-0');
+        document.getElementById('distModalContent').classList.add('scale-95');
+        setTimeout(() => {
+            document.getElementById('distributionModal').classList.add('hidden');
+            document.getElementById('distributionModal').classList.remove('flex');
+        }, 300);
+    }
+
+    function calculateDistBalance() {
+        const a1 = parseFloat(document.getElementById('dist_opposing').value) || 0;
+        const a2 = parseFloat(document.getElementById('dist_client_fee').value) || 0;
+        const a3 = parseFloat(document.getElementById('dist_refund').value) || 0;
+        const a4 = parseFloat(document.getElementById('dist_net').value) || 0;
+        
+        const sum = a1 + a2 + a3 + a4;
+        const diff = netCollectionAmount - sum;
+
+        document.getElementById('dist_sum').textContent = formatCurrency(sum);
+        document.getElementById('dist_diff').textContent = formatCurrency(Math.abs(diff));
+        
+        const diffEl = document.getElementById('dist_diff');
+        const btn = document.getElementById('distBtn');
+
+        if (Math.abs(diff) < 0.01) {
+            diffEl.className = 'font-bold text-emerald-600';
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            diffEl.className = 'font-bold text-rose-600';
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    async function saveDistribution() {
+        if(document.getElementById('distBtn').disabled) return;
+
+        const payload = {
+            collection_id: parseInt(document.getElementById('dist_col_id').value),
+            distribution_date: new Date().toISOString().substring(0, 10),
+            client_id: clientId,
+            case_id: caseId,
+            opposing_attorney_fee: parseFloat(document.getElementById('dist_opposing').value) || 0,
+            expense_refund: parseFloat(document.getElementById('dist_refund').value) || 0,
+            client_attorney_fee: parseFloat(document.getElementById('dist_client_fee').value) || 0,
+            client_net_payment: parseFloat(document.getElementById('dist_net').value) || 0
+        };
+
+        const btn = document.getElementById('distBtn');
+        btn.textContent = 'İşleniyor...';
+        btn.disabled = true;
+
+        const res = await apiCall('/distributions/distribute', 'POST', payload);
+        if(res && res.status === 'success') {
+            closeDistributionModal();
+            loadData();
+            showToast('Dağıtım tamamlandı ve cari fişler oluşturuldu!', 'success');
+        } else {
+            showToast('Hata: ' + res?.message, 'error');
+            btn.textContent = 'Dağıtımı Onayla ve Cari\'ye İşle';
+            btn.disabled = false;
+        }
+    }
+
+    async function deleteCollection(colId) {
+        const confirmed = await showConfirm(
+            'Tahsilatı Havuzdan Sil',
+            'Bu tahsilatı havuzdan silmek istediğinize emin misiniz? (Dağıtımı yapılmış tahsilatlar silinemez)',
+            'Evet, Sil'
+        );
+        if(!confirmed) return;
+        
+        const res = await apiCall(`/distributions/collections/${colId}`, 'DELETE');
+        if(res && res.status === 'success') {
+            showToast('Tahsilat başarıyla silindi.', 'success');
+            loadData();
+        } else {
+            showToast('Hata: ' + res?.message, 'error');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadData();
+    });
+</script>
+{% endblock %}

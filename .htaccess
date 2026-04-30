@@ -1,0 +1,18 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Tüm istekleri public dizinine yönlendir
+    RewriteRule ^$ public/ [L]
+    RewriteRule (.*) public/$1 [L]
+</IfModule>
+
+# Hassas dosyalara erişimi engelle
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "^(composer\.json|composer\.lock|php\.txt|phpunit\.xml|\.env|\.env\.example|.*\.md|.*\.sql)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
